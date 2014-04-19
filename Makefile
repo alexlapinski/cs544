@@ -6,7 +6,8 @@ JCC = javac
 #
 # Define the variable for the JavaCompiler Flags
 #
-JFLAGS =
+#JFLAGS = -Xlint:deprecation
+JFLAGS = 
 
 #
 # Define the source paths and package paths for brevity
