@@ -23,7 +23,11 @@ public class ServerApplication {
             negotiationPort = Integer.parseInt(args[0], 10);
         }
 
+        System.out.println("Listening on port " + negotiationPort + " for the client to request transferPort");
         int transferPort = _negotateTransferPort(negotiationPort);
+
+        System.out.println("File transfer complete, Shutting down the server");
+        _beginTransferPhase(transferPort);
     }
 
     /**
@@ -75,8 +79,8 @@ public class ServerApplication {
             negotiationService = new ServerSocket(negotiationPort, 0, null);
 
             // Endless loop to use for communication with the client
-            System.out.println("Listening on port " + negotiationPort + " for the client to request transferPort");
-            while( true ) {
+            boolean negotiationInProgress = true;
+            while( negotiationInProgress ) {
 
                 // setup the client socket and communication streams
                 clientNegotiationSocket = negotiationService.accept();
@@ -100,70 +104,122 @@ public class ServerApplication {
                     // generate random port number > 1024
                     randomPort = _generateRandomPort();
 
-                    // send port to client
+                    // send transfer port to client
                     negotationOutputStream.writeInt(randomPort);
                     System.out.println("Negotiated use of port '" + randomPort + "' with client for file transfer.");
-                    
 
-                    File receivedFile = new File("received.txt");
-                    if( receivedFile.exists() ) {
-                        receivedFile.delete();
-                    } else {
-                        receivedFile.createNewFile();
-                    }
-
-                    FileWriter fout = new FileWriter(receivedFile);
-                    
-                    DatagramSocket serverSocket = new DatagramSocket(randomPort);
-                    boolean transferingFile = true;
-
-                    while(transferingFile) {
-                        byte[] receivedData = new byte[TransferMessage.MESSAGE_SIZE];
-                        DatagramPacket receivePacket = new DatagramPacket(receivedData, receivedData.length);
-                        serverSocket.receive(receivePacket);
-
-                        TransferMessage receivedMessage = null;
-
-                        try {
-                            receivedMessage = TransferMessage.fromBytes(receivePacket.getData());
-                        } catch(Exception e) {
-                            System.out.println(e); // Lazy Error Handling
-                        }
-                        
-                        String payloadMessage = receivedMessage.getPayloadAsString();
-                        fout.write(payloadMessage, 0, payloadMessage.length());   
-                        fout.flush();
-
-                        System.out.println("Received Message Payload: '" + receivedMessage.getPayloadAsString() + "'");
-                        System.out.println("Received Message isLastMessage?: '" + receivedMessage.getIsLastMessage() + "'");
-                       
-                        InetAddress clientAddress = receivePacket.getAddress();
-                        int clientPort = receivePacket.getPort();
-                        String ackMessage = receivedMessage.getPayloadAsString().toUpperCase();
-                        byte[] ackData = ackMessage.getBytes();
-                        DatagramPacket ackPacket = new DatagramPacket(ackData, ackData.length, clientAddress, clientPort);
-                       
-                        System.out.println("Sending Ack: '" + ackMessage + "'");
-                        serverSocket.send(ackPacket);
-
-                        // Detect end of transfer
-                        if( receivedMessage.getIsLastMessage() ) {
-                            fout.flush();
-                            fout.close();
-                            transferingFile = false;
-                        }
-                    }
-
-                    System.out.println("File transfer complete, listening again for new clients");
+                    // Cleanup Negotiation Phase
+                    negotationOutputStream.close();
+                    negotiationInProgress = false;
                 }
             }
             
-            // Cleanup is handled on the client
+            // Cleanup of sockets is handled on the client end
 
         } catch(IOException ioe) {
             System.out.println(ioe);
         }
 
-        return randomPort;
+        return randomPort; // todo, clean this up, it isn't really needed to return the random port since we just run the server once, 
+        // its not a true server, as it is not a long-running process
+    }
+
+    /**
+     * @brief Listen for the client to connect over the transfer port and handle transfer of file
+     * @details Handle the transfer phase of the server
+     * 
+     * @param transferPort port to use for UDP socket transfer
+     */
+    private static void _beginTransferPhase(int transferPort) {
+    
+        // setup the file writer
+        File receivedFile = new File("received.txt");
+        if( receivedFile.exists() ) {
+            receivedFile.delete();
+        } else {
+            try {
+                receivedFile.createNewFile();
+            } catch(IOException ioe) {
+                System.out.println(ioe);
+            }
+        }
+        FileWriter fout;
+
+        try {
+            fout = new FileWriter(receivedFile);
+        } catch(IOException ioe) {
+            System.out.println(ioe);
+            return;
+        }
+                    
+        // setup the server socket for receiving the file
+        DatagramSocket serverSocket;
+        try {
+            serverSocket = new DatagramSocket(transferPort);
+        } catch(SocketException se) {
+            System.out.println(se);
+            return;
+        }
+        boolean transferingFileInProgress = true;
+
+        System.out.println("Waiting for file transfer");
+        while(transferingFileInProgress) {
+
+            // Setup the Receive Datagram
+            byte[] receivedData = new byte[TransferMessage.MESSAGE_SIZE];
+            DatagramPacket receivePacket = new DatagramPacket(receivedData, receivedData.length);
+
+            try {
+                serverSocket.receive(receivePacket);
+            } catch(IOException ioe) {
+                System.out.println(ioe);
+            }
+
+            // Get the transfer message and unbox it
+            TransferMessage receivedMessage = null;
+            try {
+                receivedMessage = TransferMessage.fromBytes(receivePacket.getData());
+                System.out.println("Received message: { isLastMessage: '" + receivedMessage.getIsLastMessage() + "', payload: '" +receivedMessage.getPayloadAsString() +"'}"); 
+            } catch(Exception e) {
+                System.out.println(e); // Lazy Error Handling
+            }
+            
+            // Write the chunk out to file
+            String payloadMessage = receivedMessage.getPayloadAsString();
+            try {
+                fout.write(payloadMessage, 0, payloadMessage.length());   
+                fout.flush();
+            } catch(IOException ioe) {
+                System.out.println(ioe);
+            }
+            System.out.println("Wrote payload to file.");
+
+            // Build the ACK datagram
+            InetAddress clientAddress = receivePacket.getAddress();
+            int clientPort = receivePacket.getPort();
+            String ackMessage = receivedMessage.getPayloadAsString().toUpperCase();
+            byte[] ackData = ackMessage.getBytes();
+            DatagramPacket ackPacket = new DatagramPacket(ackData, ackData.length, clientAddress, clientPort);
+                       
+            // Send the ACK & notifiy user on CLI
+            System.out.println("Sending ACK");
+            try {
+                serverSocket.send(ackPacket);
+            } catch(IOException ioe) {
+                System.out.println(ioe);
+            }
+
+            // Detect end of transfer
+            if( receivedMessage.getIsLastMessage() ) {
+                try {
+                    fout.flush();
+                    fout.close();
+                } catch(IOException ioe) {
+                    System.out.println(ioe);
+                }
+                transferingFileInProgress = false;
+                System.out.println("Received EOF message.");
+            }
+        }
     }
 }

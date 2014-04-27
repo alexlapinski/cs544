@@ -22,8 +22,6 @@ public class ClientApplication {
             _parseArguments(args);
             _transferPort = _negotiateTransferPort(_serverAddress, _fixedPort);
             _fileContents = _readContentsOfFile(_filenameToTransfer);
-            System.out.println("Read File");
-            
             _transferDataToServer(_serverAddress, _transferPort, _fileContents);
         }
     }
@@ -169,7 +167,6 @@ public class ClientApplication {
 
             while((c = fin.read()) != -1) {
 
-                System.out.println("Read: " + c);
                 buffer.add(new Byte((byte)c));
             }
             
@@ -197,6 +194,8 @@ public class ClientApplication {
      * @param data The data to transfer, must be non-null
      */
     private static void _transferDataToServer(String serverAddress, int transferPort, byte[] data) {
+
+        System.out.println("Sending file to server");
         final int WORD_SIZE = 4;
 
         DatagramSocket clientSocket = null;
@@ -228,8 +227,6 @@ public class ClientApplication {
             int startIndex = (currentChunk * TransferMessage.PAYLOAD_SIZE);
             int endIndex = ((currentChunk+1) * TransferMessage.PAYLOAD_SIZE);
 
-            System.out.println("Sending data from Index: " + startIndex + " to Index: " + endIndex);
-
             byte[] chunkOfData = Arrays.copyOfRange(totalDataToSend, startIndex, endIndex);
 
             TransferMessage message = null;
@@ -243,8 +240,8 @@ public class ClientApplication {
 
             DatagramPacket dataPacket = new DatagramPacket(messageAsBytes, messageAsBytes.length, localAddress, transferPort);
     
+            System.out.println("Sending Message to Server: { isLastMessage: '"+message.getIsLastMessage()+"', payload: '"+ message.getPayloadAsString() + "'}");
             try {
-                System.out.println("Sending Chunk " + currentChunk + " : '" + new String(chunkOfData) + "' ");
                 clientSocket.send(dataPacket);
             } catch(IOException ioe) {
                 System.out.println(ioe);
@@ -255,18 +252,15 @@ public class ClientApplication {
             
             try {
                 clientSocket.receive(ackPacket);
-                System.out.println("Received ACK: '" + new String(ackPacket.getData()) + "'");
             } catch(IOException ioe) {
                 System.out.println(ioe); // Lazy Error Handling
             }
+            System.out.println("Received ACK '" + new String(ackPacket.getData()) + "'");
 
             currentChunk++;
             remainingBytes -= chunkOfData.length;
         }
 
-        // Send END Message
-
-        // TODO: Chunking the file and sending packet by packet, also reciveing ACK from server
-
+        System.out.println("Sending file to server Complete");
     }
 }
