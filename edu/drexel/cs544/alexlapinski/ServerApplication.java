@@ -62,7 +62,7 @@ public class ServerApplication {
 
         try {
             // create our service
-            negotiationService = new ServerSocket(negotiationPort);
+            negotiationService = new ServerSocket(negotiationPort, 0, null);
 
             // Endless loop to use for communication with the client
             System.out.println("Listening on port " + negotiationPort + " for the client to request transferPort");
