@@ -24,10 +24,14 @@ public class ServerApplication {
         }
 
         System.out.println("Listening on port " + negotiationPort + " for the client to request transferPort");
+        
         int transferPort = _negotateTransferPort(negotiationPort);
-
-        System.out.println("File transfer complete, Shutting down the server");
+        
+        System.out.println("Negotiated use of port '" + transferPort + "' with client for file transfer.");
+        
         _beginTransferPhase(transferPort);
+        
+        System.out.println("File transfer complete, Shutting down the server");
     }
 
     /**
@@ -106,8 +110,7 @@ public class ServerApplication {
 
                     // send transfer port to client
                     negotationOutputStream.writeInt(randomPort);
-                    System.out.println("Negotiated use of port '" + randomPort + "' with client for file transfer.");
-
+                    
                     // Cleanup Negotiation Phase
                     negotationOutputStream.close();
                     negotiationInProgress = false;
