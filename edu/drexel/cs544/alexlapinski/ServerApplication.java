@@ -13,7 +13,10 @@ public class ServerApplication {
 
     public static void main(String [ ] args) {
         
-        int transferPort = _negotateTransferPort(FIXED_PORT);
+        int negotiationPort = Integer.parseInt(args[0], 10);
+        //int negotiationPort = FIXED_PORT;
+
+        int transferPort = _negotateTransferPort(negotiationPort);
     }
 
     /**
