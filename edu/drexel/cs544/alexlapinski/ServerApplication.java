@@ -112,8 +112,15 @@ public class ServerApplication {
 
                         String rawData = new String(receivePacket.getData());
                         System.out.println("Received: '"+rawData+"'");
+
+                        // TODO: Send Ack to Client for receipt of each packet
+
+                        // Detect end of transfer
+
                         break; // listen for new file
                     }
+
+                    System.out.println("File transfer complete, listening again for new clients");
                 }
             }
             

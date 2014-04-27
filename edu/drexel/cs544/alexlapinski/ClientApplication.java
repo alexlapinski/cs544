@@ -207,6 +207,8 @@ public class ClientApplication {
         byte[] sendData = new byte[1024];
         sendData = data.getBytes();
 
+        // TODO: Chunking the file and sending packet by packet, also reciveing ACK from server
+
         DatagramPacket dataPacket = new DatagramPacket(sendData, sendData.length, localAddress, transferPort);
     
         try {
