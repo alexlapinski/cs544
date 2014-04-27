@@ -13,8 +13,14 @@ public class ServerApplication {
 
     public static void main(String [ ] args) {
         
-        int negotiationPort = Integer.parseInt(args[0], 10);
-        //int negotiationPort = FIXED_PORT;
+        // Due to similataneous testing on tux, we need to allow for specifying a port at runtime, 
+        // the default (6000) is used if not specified
+
+        int negotiationPort = FIXED_PORT;
+
+        if( args.length >= 1 ) {
+            negotiationPort = Integer.parseInt(args[0], 10);
+        }
 
         int transferPort = _negotateTransferPort(negotiationPort);
     }
