@@ -64,15 +64,15 @@ public class ServerApplication {
             // create our service
             negotiationService = new ServerSocket(negotiationPort);
 
-            // setup the client socket and communication streams
-            clientNegotiationSocket = negotiationService.accept();
-            negotationInputStream = new DataInputStream(clientNegotiationSocket.getInputStream());
-            negotationOutputStream = new DataOutputStream(clientNegotiationSocket.getOutputStream());
-            System.out.println("Listening on port " + negotiationPort + " for the client to request transferPort");
-
             // Endless loop to use for communication with the client
+            System.out.println("Listening on port " + negotiationPort + " for the client to request transferPort");
             while( true ) {
 
+                // setup the client socket and communication streams
+                clientNegotiationSocket = negotiationService.accept();
+                negotationInputStream = new DataInputStream(clientNegotiationSocket.getInputStream());
+                negotationOutputStream = new DataOutputStream(clientNegotiationSocket.getOutputStream());
+            
                 int message;
 
                 // read an int from the input stream
@@ -93,9 +93,6 @@ public class ServerApplication {
                     // send port to client
                     negotationOutputStream.writeInt(randomPort);
                     System.out.println("Negotiated use of port '" + randomPort + "' with client for file transfer.");
-
-                    // exit loop
-                    break;
                 }
             }
             
