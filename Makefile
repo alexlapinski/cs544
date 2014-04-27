@@ -33,12 +33,17 @@ default: Server Client
 #
 # Define the target for building the server application
 #
-Server: $(PACKAGE_PATH)/ServerApplication.class
+Server: $(PACKAGE_PATH)/ServerApplication.class TransferMessage
 
 #
 # Define the target for building the client application
 #
-Client: $(PACKAGE_PATH)/ClientApplication.class
+Client: $(PACKAGE_PATH)/ClientApplication.class TransferMessage
+
+#
+# Define the target for building the transfer message class
+#
+TransferMessage: $(PACKAGE_PATH)/TransferMessage.class
 
 #
 # Clean Target

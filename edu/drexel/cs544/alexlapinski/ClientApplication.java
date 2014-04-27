@@ -1,6 +1,8 @@
 package edu.drexel.cs544.alexlapinski;
 
 import java.lang.Integer;
+import java.util.Arrays;
+import java.util.ArrayList;
 import java.net.*;
 import java.io.*;
 
@@ -10,7 +12,7 @@ public class ClientApplication {
     private static int _fixedPort;
     private static String _filenameToTransfer;
     private static int _transferPort;
-    private static String _fileContents;
+    private static byte[] _fileContents;
 
     public static void main(String [ ] args) {
 
@@ -137,42 +139,50 @@ public class ClientApplication {
      * @details Read in the contents of a text file and return it as a string
      * 
      * @param filename Filename of a plain text ASCII file
-     * @return contents of the file as a String, null if an error has occured
+     * @return contents of the file as a byte array, null if an error has occured
      */
-    private static String _readContentsOfFile(String filename) {
+    private static byte[] _readContentsOfFile(String filename) {
 
-        String fileContents = null;
-
+        ArrayList<Byte> buffer = new ArrayList<Byte>();
+        
         // Check validity of filename
         if( filename == null || filename.length() == 0 ) {
-            return fileContents;
+            return null;
         }
 
         // setup reader
-        FileReader fileReader = null;
-
+        FileReader fin = null;
+        
         try {
-            fileReader = new FileReader(filename);
+            fin = new FileReader(filename);
         } catch(IOException ioe) {
             System.out.println(ioe);
         }
 
-        if( fileReader == null ) {
-            return fileContents;
+        if( fin == null ) {
+            return null;
         }
 
-        BufferedReader bufferedReader = new BufferedReader(fileReader);
-
         // read the file
-        String line = null;
         try {
-            while( (line = bufferedReader.readLine()) != null ) {
-                fileContents += line;
-            }
+            int c;
 
-            bufferedReader.close();
+            while((c = fin.read()) != -1) {
+
+                System.out.println("Read: " + c);
+                buffer.add(new Byte((byte)c));
+            }
+            
+            fin.close();
+
         } catch(IOException ioe) {
             System.out.println(ioe); // Lazy Error Handling
+        }
+
+        // Convert to simple byte array
+        byte[] fileContents = new byte[buffer.size()];
+        for(int i = 0; i < buffer.size(); i++ ) {
+            fileContents[i] = buffer.get(i);
         }
 
         return fileContents;
@@ -186,7 +196,9 @@ public class ClientApplication {
      * @param transferPort The transfer port to use
      * @param data The data to transfer, must be non-null
      */
-    private static void _transferDataToServer(String serverAddress, int transferPort, String data) {
+    private static void _transferDataToServer(String serverAddress, int transferPort, byte[] data) {
+        final int WORD_SIZE = 4;
+
         DatagramSocket clientSocket = null;
         InetAddress localAddress = null;
         
@@ -204,18 +216,57 @@ public class ClientApplication {
             return;
         }
 
-        byte[] sendData = new byte[1024];
-        sendData = data.getBytes();
+        byte[] totalDataToSend = data;
+
+        int remainingBytes = totalDataToSend.length;
+        int currentChunk = 0;
+        
+        while(remainingBytes > 0) {
+
+            // TODO: Create message "Structure" that has a flag to indicate more data available, or to indicate last message
+
+            int startIndex = (currentChunk * TransferMessage.PAYLOAD_SIZE);
+            int endIndex = ((currentChunk+1) * TransferMessage.PAYLOAD_SIZE);
+
+            System.out.println("Sending data from Index: " + startIndex + " to Index: " + endIndex);
+
+            byte[] chunkOfData = Arrays.copyOfRange(totalDataToSend, startIndex, endIndex);
+
+            TransferMessage message = null;
+            try {
+                message = new TransferMessage(endIndex >= totalDataToSend.length, chunkOfData);
+            } catch(Exception e) {
+                System.out.println(e);
+            }
+
+            byte[] messageAsBytes = message.getBytes();
+
+            DatagramPacket dataPacket = new DatagramPacket(messageAsBytes, messageAsBytes.length, localAddress, transferPort);
+    
+            try {
+                System.out.println("Sending Chunk " + currentChunk + " : '" + new String(chunkOfData) + "' ");
+                clientSocket.send(dataPacket);
+            } catch(IOException ioe) {
+                System.out.println(ioe);
+            }
+
+            byte[] ackData = new byte[TransferMessage.MESSAGE_SIZE];
+            DatagramPacket ackPacket = new DatagramPacket(ackData, ackData.length);
+            
+            try {
+                clientSocket.receive(ackPacket);
+                System.out.println("Received ACK: '" + new String(ackPacket.getData()) + "'");
+            } catch(IOException ioe) {
+                System.out.println(ioe); // Lazy Error Handling
+            }
+
+            currentChunk++;
+            remainingBytes -= chunkOfData.length;
+        }
+
+        // Send END Message
 
         // TODO: Chunking the file and sending packet by packet, also reciveing ACK from server
 
-        DatagramPacket dataPacket = new DatagramPacket(sendData, sendData.length, localAddress, transferPort);
-    
-        try {
-            System.out.println("Sending File");
-            clientSocket.send(dataPacket);
-        } catch(IOException ioe) {
-            System.out.println(ioe);
-        }
     }
 }

@@ -3,6 +3,7 @@ package edu.drexel.cs544.alexlapinski;
 import java.net.*;
 import java.io.*;
 import java.util.Random;
+import java.util.Arrays;
 
 public class ServerApplication {
 
@@ -102,22 +103,55 @@ public class ServerApplication {
                     // send port to client
                     negotationOutputStream.writeInt(randomPort);
                     System.out.println("Negotiated use of port '" + randomPort + "' with client for file transfer.");
-                
+                    
 
+                    File receivedFile = new File("received.txt");
+                    if( receivedFile.exists() ) {
+                        receivedFile.delete();
+                    } else {
+                        receivedFile.createNewFile();
+                    }
+
+                    FileWriter fout = new FileWriter(receivedFile);
+                    
                     DatagramSocket serverSocket = new DatagramSocket(randomPort);
-                    byte[] receivedData = new byte[1024];
-                    while(true) {
+                    boolean transferingFile = true;
+
+                    while(transferingFile) {
+                        byte[] receivedData = new byte[TransferMessage.MESSAGE_SIZE];
                         DatagramPacket receivePacket = new DatagramPacket(receivedData, receivedData.length);
                         serverSocket.receive(receivePacket);
 
-                        String rawData = new String(receivePacket.getData());
-                        System.out.println("Received: '"+rawData+"'");
+                        TransferMessage receivedMessage = null;
 
-                        // TODO: Send Ack to Client for receipt of each packet
+                        try {
+                            receivedMessage = TransferMessage.fromBytes(receivePacket.getData());
+                        } catch(Exception e) {
+                            System.out.println(e); // Lazy Error Handling
+                        }
+                        
+                        String payloadMessage = receivedMessage.getPayloadAsString();
+                        fout.write(payloadMessage, 0, payloadMessage.length());   
+                        fout.flush();
+
+                        System.out.println("Received Message Payload: '" + receivedMessage.getPayloadAsString() + "'");
+                        System.out.println("Received Message isLastMessage?: '" + receivedMessage.getIsLastMessage() + "'");
+                       
+                        InetAddress clientAddress = receivePacket.getAddress();
+                        int clientPort = receivePacket.getPort();
+                        String ackMessage = receivedMessage.getPayloadAsString().toUpperCase();
+                        byte[] ackData = ackMessage.getBytes();
+                        DatagramPacket ackPacket = new DatagramPacket(ackData, ackData.length, clientAddress, clientPort);
+                       
+                        System.out.println("Sending Ack: '" + ackMessage + "'");
+                        serverSocket.send(ackPacket);
 
                         // Detect end of transfer
-
-                        break; // listen for new file
+                        if( receivedMessage.getIsLastMessage() ) {
+                            fout.flush();
+                            fout.close();
+                            transferingFile = false;
+                        }
                     }
 
                     System.out.println("File transfer complete, listening again for new clients");
