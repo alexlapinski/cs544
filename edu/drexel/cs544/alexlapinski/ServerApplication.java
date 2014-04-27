@@ -102,6 +102,18 @@ public class ServerApplication {
                     // send port to client
                     negotationOutputStream.writeInt(randomPort);
                     System.out.println("Negotiated use of port '" + randomPort + "' with client for file transfer.");
+                
+
+                    DatagramSocket serverSocket = new DatagramSocket(randomPort);
+                    byte[] receivedData = new byte[1024];
+                    while(true) {
+                        DatagramPacket receivePacket = new DatagramPacket(receivedData, receivedData.length);
+                        serverSocket.receive(receivePacket);
+
+                        String rawData = new String(receivePacket.getData());
+                        System.out.println("Received: '"+rawData+"'");
+                        break; // listen for new file
+                    }
                 }
             }
             

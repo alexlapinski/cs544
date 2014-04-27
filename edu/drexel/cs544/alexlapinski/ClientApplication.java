@@ -10,6 +10,7 @@ public class ClientApplication {
     private static int _fixedPort;
     private static String _filenameToTransfer;
     private static int _transferPort;
+    private static String _fileContents;
 
     public static void main(String [ ] args) {
 
@@ -18,6 +19,10 @@ public class ClientApplication {
         } else {
             _parseArguments(args);
             _transferPort = _negotiateTransferPort(_serverAddress, _fixedPort);
+            _fileContents = _readContentsOfFile(_filenameToTransfer);
+            System.out.println("Read File");
+            
+            _transferDataToServer(_serverAddress, _transferPort, _fileContents);
         }
     }
 
@@ -125,5 +130,90 @@ public class ClientApplication {
         }
 
         return transferPort; // 
+    }
+
+    /**
+     * @brief Read the contents of the specified file and return as a string
+     * @details Read in the contents of a text file and return it as a string
+     * 
+     * @param filename Filename of a plain text ASCII file
+     * @return contents of the file as a String, null if an error has occured
+     */
+    private static String _readContentsOfFile(String filename) {
+
+        String fileContents = null;
+
+        // Check validity of filename
+        if( filename == null || filename.length() == 0 ) {
+            return fileContents;
+        }
+
+        // setup reader
+        FileReader fileReader = null;
+
+        try {
+            fileReader = new FileReader(filename);
+        } catch(IOException ioe) {
+            System.out.println(ioe);
+        }
+
+        if( fileReader == null ) {
+            return fileContents;
+        }
+
+        BufferedReader bufferedReader = new BufferedReader(fileReader);
+
+        // read the file
+        String line = null;
+        try {
+            while( (line = bufferedReader.readLine()) != null ) {
+                fileContents += line;
+            }
+
+            bufferedReader.close();
+        } catch(IOException ioe) {
+            System.out.println(ioe); // Lazy Error Handling
+        }
+
+        return fileContents;
+    } 
+
+    /**
+     * @brief Transfer String Data to the server specified at the port specified
+     * @details Transfers String Data to the server via UDP at the port specified, if data is null, the transfer does not occur
+     * 
+     * @param serverAddress The server address
+     * @param transferPort The transfer port to use
+     * @param data The data to transfer, must be non-null
+     */
+    private static void _transferDataToServer(String serverAddress, int transferPort, String data) {
+        DatagramSocket clientSocket = null;
+        InetAddress localAddress = null;
+        
+        try {
+            clientSocket = new DatagramSocket();
+        } catch(SocketException se) {
+            System.out.println(se);
+            return;
+        }
+
+        try {
+            localAddress = InetAddress.getByName(serverAddress);
+        } catch(UnknownHostException uhe) {
+            System.out.println(uhe);
+            return;
+        }
+
+        byte[] sendData = new byte[1024];
+        sendData = data.getBytes();
+
+        DatagramPacket dataPacket = new DatagramPacket(sendData, sendData.length, localAddress, transferPort);
+    
+        try {
+            System.out.println("Sending File");
+            clientSocket.send(dataPacket);
+        } catch(IOException ioe) {
+            System.out.println(ioe);
+        }
     }
 }
