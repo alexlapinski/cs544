@@ -1,0 +1,213 @@
+adminisatorsair:Programming-Assignment-2 Max$ java client localhost 6000 6001 file.txt
+type: 1  seqnum: 0 length: 30
+data: Wow. Never ceases to amaze me.
+
+Sn: 1
+Sf: 0
+Number of outstanding packets: 1
+--------------------------------------
+
+type: 1  seqnum: 1 length: 30
+data:  What cologne you gonna go wit
+
+Sn: 2
+Sf: 0
+Number of outstanding packets: 2
+--------------------------------------
+
+type: 1  seqnum: 2 length: 30
+data: h? London Gentleman, or wait. 
+
+Sn: 3
+Sf: 0
+Number of outstanding packets: 3
+--------------------------------------
+
+type: 1  seqnum: 3 length: 30
+data: No, no, no. Hold on. Blackbear
+
+Sn: 4
+Sf: 0
+Number of outstanding packets: 4
+--------------------------------------
+
+type: 1  seqnum: 4 length: 30
+data: d's Delight. Brian, I'm gonna 
+
+Sn: 5
+Sf: 0
+Number of outstanding packets: 5
+--------------------------------------
+
+type: 1  seqnum: 5 length: 30
+data: be honest with you, that smell
+
+Sn: 6
+Sf: 0
+Number of outstanding packets: 6
+--------------------------------------
+
+type: 1  seqnum: 6 length: 30
+data: s like pure gasoline. They've 
+
+Sn: 7
+Sf: 0
+Number of outstanding packets: 7
+--------------------------------------
+
+Receiving from server:
+
+type: 0  seqnum: 1 length: 0
+data: WOW. NEVER CEASES TO AMAZE ME.
+
+Sn: 7
+Sf: 1
+Number of outstanding packets: 6
+--------------------------------------
+
+type: 1  seqnum: 7 length: 30
+data: done studies, you know. 60% of
+
+Sn: 0
+Sf: 1
+Number of outstanding packets: 7
+--------------------------------------
+
+Receiving from server:
+
+type: 0  seqnum: 2 length: 0
+data:  WHAT COLOGNE YOU GONNA GO WIT
+
+Sn: 0
+Sf: 2
+Number of outstanding packets: 6
+--------------------------------------
+
+type: 1  seqnum: 0 length: 30
+data:  the time, it works every time
+
+Sn: 1
+Sf: 2
+Number of outstanding packets: 7
+--------------------------------------
+
+Receiving from server:
+
+type: 0  seqnum: 3 length: 0
+data: H? LONDON GENTLEMAN, OR WAIT. 
+
+Sn: 1
+Sf: 3
+Number of outstanding packets: 6
+--------------------------------------
+
+type: 1  seqnum: 1 length: 30
+data: . I saw that. Brick killed a g
+
+Sn: 2
+Sf: 3
+Number of outstanding packets: 7
+--------------------------------------
+
+Receiving from server:
+
+type: 0  seqnum: 4 length: 0
+data: NO, NO, NO. HOLD ON. BLACKBEAR
+
+Sn: 2
+Sf: 4
+Number of outstanding packets: 6
+--------------------------------------
+
+type: 1  seqnum: 2 length: 28
+data: uy. Did you throw a trident?
+
+Sn: 3
+Sf: 4
+Number of outstanding packets: 7
+--------------------------------------
+
+Receiving from server:
+
+type: 0  seqnum: 5 length: 0
+data: D'S DELIGHT. BRIAN, I'M GONNA 
+
+Sn: 3
+Sf: 5
+Number of outstanding packets: 6
+--------------------------------------
+
+Receiving from server:
+
+type: 0  seqnum: 6 length: 0
+data: BE HONEST WITH YOU, THAT SMELL
+
+Sn: 3
+Sf: 6
+Number of outstanding packets: 5
+--------------------------------------
+
+Receiving from server:
+
+type: 0  seqnum: 7 length: 0
+data: S LIKE PURE GASOLINE. THEY'VE 
+
+Sn: 3
+Sf: 7
+Number of outstanding packets: 4
+--------------------------------------
+
+Receiving from server:
+
+type: 0  seqnum: 0 length: 0
+data: DONE STUDIES, YOU KNOW. 60% OF
+
+Sn: 3
+Sf: 0
+Number of outstanding packets: 3
+--------------------------------------
+
+Receiving from server:
+
+type: 0  seqnum: 1 length: 0
+data:  THE TIME, IT WORKS EVERY TIME
+
+Sn: 3
+Sf: 1
+Number of outstanding packets: 2
+--------------------------------------
+
+Receiving from server:
+
+type: 0  seqnum: 2 length: 0
+data: . I SAW THAT. BRICK KILLED A G
+
+Sn: 3
+Sf: 2
+Number of outstanding packets: 1
+--------------------------------------
+
+Receiving from server:
+
+type: 0  seqnum: 3 length: 0
+data: UY. DID YOU THROW A TRIDENT?
+
+Sn: 3
+Sf: 3
+Number of outstanding packets: 0
+--------------------------------------
+
+Sending EOT packet to server.
+
+type: 3  seqnum: 3 length: 0
+data: EOT
+
+Receiving from server:
+
+type: 2  seqnum: 4 length: 0
+data: EOT
+
+EOT packet received. Exiting.
+--------------------------------------
+
+adminisatorsair:Programming-Assignment-2 Max$ 
