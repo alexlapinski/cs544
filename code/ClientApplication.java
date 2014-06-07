@@ -1,5 +1,3 @@
-package edu.drexel.cs544.alexlapinski;
-
 import java.lang.Integer;
 import java.util.Arrays;
 import java.util.ArrayList;

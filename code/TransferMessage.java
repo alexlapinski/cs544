@@ -1,4 +1,5 @@
-package edu.drexel.cs544.alexlapinski;
+// Author: Alex Lapinski
+// Date: June 7th, 2014
 
 import java.util.Arrays;
 

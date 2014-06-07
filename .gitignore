@@ -1,1 +1,4 @@
-*.class
+code/ClientApplication.class
+code/ServerApplication.class
+code/TransferMessage.class
+.DS_Store

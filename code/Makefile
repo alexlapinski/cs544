@@ -10,11 +10,6 @@ JCC = javac
 JFLAGS = 
 
 #
-# Define the source paths and package paths for brevity
-#
-PACKAGE_PATH = edu/drexel/cs544/alexlapinski
-
-#
 # tell make about java source and binary files
 #
 .SUFFIXES: .java .class
@@ -33,20 +28,23 @@ default: Server Client
 #
 # Define the target for building the server application
 #
-Server: $(PACKAGE_PATH)/ServerApplication.class TransferMessage
+Server: ServerApplication.class TransferMessage
 
 #
 # Define the target for building the client application
 #
-Client: $(PACKAGE_PATH)/ClientApplication.class TransferMessage
+Client: ClientApplication.class TransferMessage
 
 #
 # Define the target for building the transfer message class
 #
-TransferMessage: $(PACKAGE_PATH)/TransferMessage.class
+TransferMessage: TransferMessage.class
 
 #
 # Clean Target
 #
 clean:
-	$(RM) $(PACKAGE_PATH)/*.class
+	$(RM) ServerApplication.class
+	$(RM) ClientApplication.class
+	$(RM) TransferMessage.class
+	$(RM) packet.class
