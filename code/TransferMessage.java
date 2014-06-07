@@ -90,7 +90,7 @@ public class TransferMessage {
      * @return byte representation of boolean value
      */
     private static byte _convertBooleanToByte(boolean value) {
-        if( value ) {
+        if ( value ) {
             return 0b0001;
         }
 

@@ -1,3 +1,6 @@
+// Author: Alex Lapinski
+// Date: June 7th, 2014
+
 import java.lang.Integer;
 import java.util.Arrays;
 import java.util.ArrayList;
