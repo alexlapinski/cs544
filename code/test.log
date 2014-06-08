@@ -1,0 +1,7 @@
+Arguments Supplied
+     Emulator Hostname: localhost
+     Send to Emulator Port: 6000
+     Receive from Emulator Port: 6001
+     Filename To Transfer: ../documentation/file.txt
+Sending file to server
+java.net.BindException: Address already in use

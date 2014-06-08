@@ -9,11 +9,35 @@ import java.io.*;
 
 public class ClientApplication {
 
+    public static class AckListener implements Runnable {
+
+        private DatagramSocket _listeningSocket;
+        private packet _receivedPacket;
+
+        public AckListener(DatagramSocket listeningSocket) {
+            _listeningSocket = listeningSocket;
+        }
+
+        public void run() {
+            byte[] ackData = new byte[30];
+            DatagramPacket ackPacket = new DatagramPacket(ackData, ackData.length);
+            
+            try {
+                _listeningSocket.receive(ackPacket);
+                _receivedPacket = PacketHelper.deserialize(ackData);
+            } catch(IOException ioe) {
+                System.out.println(ioe); // Lazy Error Handling
+            }
+        
+            System.out.println("Received ACK '" + new String(ackPacket.getData()) + "'");
+        }
+    }
+
     private static String _emulatorHostname;
     private static int _sendPort;
     private static int _receivePort;
     private static String _filenameToTransfer;
-    private static byte[] _fileContents;
+    private static char[] _fileContents;
 
     public static void main(String [ ] args) {
 
@@ -23,8 +47,13 @@ public class ClientApplication {
             _parseArguments(args);
             
             _fileContents = _readContentsOfFile(_filenameToTransfer);
+            
             _transferDataToServer(_emulatorHostname, _sendPort, _receivePort, _fileContents);
         }
+    }
+
+    public static void notifyAckReceived(int ackNumber) {
+        System.out.println("Received Ack for " + ackNumber);
     }
 
     /**
@@ -59,11 +88,11 @@ public class ClientApplication {
      * @details Read in the contents of a text file and return it as a string
      * 
      * @param filename Filename of a plain text ASCII file
-     * @return contents of the file as a byte array, null if an error has occured
+     * @return contents of the file as a char array, null if an error has occured
      */
-    private static byte[] _readContentsOfFile(String filename) {
+    private static char[] _readContentsOfFile(String filename) {
 
-        ArrayList<Byte> buffer = new ArrayList<Byte>();
+        ArrayList<Character> buffer = new ArrayList<Character>();
         
         // Check validity of filename
         if( filename == null || filename.length() == 0 ) {
@@ -71,25 +100,28 @@ public class ClientApplication {
         }
 
         // setup reader
-        FileReader fin = null;
+        FileInputStream fin = null;
+        InputStreamReader inStream = null;
+        BufferedReader reader = null;
         
         try {
-            fin = new FileReader(filename);
-        } catch(IOException ioe) {
-            System.out.println(ioe);
+            fin = new FileInputStream(filename);
+        } catch(FileNotFoundException fnfe) {
+            System.out.println(fnfe);
         }
 
         if( fin == null ) {
             return null;
         }
-
+        inStream = new InputStreamReader(fin);
+        reader = new BufferedReader(inStream);
+        
         // read the file
         try {
             int c;
 
-            while((c = fin.read()) != -1) {
-
-                buffer.add(new Byte((byte)c));
+            while((c = reader.read()) != -1) {
+                buffer.add(new Character((char)c));
             }
             
             fin.close();
@@ -99,9 +131,9 @@ public class ClientApplication {
         }
 
         // Convert to simple byte array
-        byte[] fileContents = new byte[buffer.size()];
+        char[] fileContents = new char[buffer.size()];
         for(int i = 0; i < buffer.size(); i++ ) {
-            fileContents[i] = buffer.get(i);
+            fileContents[i] = buffer.get(i).charValue();
         }
 
         return fileContents;
@@ -116,14 +148,22 @@ public class ClientApplication {
      * @param receivePort THe UDP port to use for receiving ACKs from the emulator
      * @param data The data to transfer, must be non-null
      */
-    private static void _transferDataToServer(String emulatorHostname, int sendPort, int receivePort, byte[] data) {
+    private static void _transferDataToServer(String emulatorHostname, int sendPort, int receivePort, char[] data) {
 
         System.out.println("Sending file to server");
-        final int WORD_SIZE = 4;
-
+        
+        // GBN variables
+        int s_f = 0; // first outstanding packet
+        int s_n = 0; // next packet to send
+        int m = 3; // used to calculate window size
+        int window_size = (int)Math.pow(2, m) - 1; // (2^m) - 1
+        int modulus = (int)Math.pow(2, m); // used in modulus divison
+        
+        // Transmission Variables
         DatagramSocket sendSocket = null;
         DatagramSocket receiveSocket = null;
         InetAddress localAddress = null;
+        packet[] sendWindow = new packet[window_size];
         
         try {
             sendSocket = new DatagramSocket(sendPort);
@@ -140,50 +180,74 @@ public class ClientApplication {
             return;
         }
 
-        byte[] totalDataToSend = data;
-
-        int remainingBytes = totalDataToSend.length;
+        // Chunking Variables
+        char[] totalDataToSend = data;
+        int remainingCharacters = totalDataToSend.length;
         int currentChunk = 0;
-        
-        while(remainingBytes > 0) {
 
-            int startIndex = (currentChunk * PacketHelper.PACKET_MAX_SIZE);
-            int endIndex = ((currentChunk+1) * PacketHelper.PACKET_MAX_SIZE);
+        while(remainingCharacters > 0) {
+            System.out.println("----");
+            // Create a packet, and send it
+            if( (s_n != (s_f + window_size) % modulus) || (s_n == 0 && s_f == 0) ) {            
 
-            byte[] chunkOfData = Arrays.copyOfRange(totalDataToSend, startIndex, endIndex);
+                int startIndex = (currentChunk * PacketHelper.PACKET_MAX_CHARACTERS);
+                int endIndex = ((currentChunk+1) * PacketHelper.PACKET_MAX_CHARACTERS);
 
-//            TransferMessage message = null;
-//            try {
-//                message = new TransferMessage(endIndex >= totalDataToSend.length, chunkOfData);
-//            } catch(Exception e) {
-//                System.out.println(e);
-//            }
+                char[] chunkOfData = Arrays.copyOfRange(totalDataToSend, startIndex, endIndex);
+                String packetPayload = new String(chunkOfData);
 
-//            byte[] messageAsBytes = message.getBytes();
+                sendWindow[s_n] = new packet(PacketHelper.PacketType.DATA.getValue(), 
+                                             s_n, 
+                                             packetPayload.length(), 
+                                             packetPayload);
 
-//            DatagramPacket dataPacket = new DatagramPacket(messageAsBytes, messageAsBytes.length, localAddress, sendPort);
-    
-//            System.out.println("Sending Message to Server: { isLastMessage: '"+message.getIsLastMessage()+"', payload: '"+ message.getPayloadAsString() + "'}");
-//            try {
-//                sendSocket.send(dataPacket);
-//            } catch(IOException ioe) {
-//                System.out.println(ioe);
-//            }
+                packet p = sendWindow[s_n];
+                
+                System.out.println("Sending Packet (Sn = " + s_n + ")");
 
-//            byte[] ackData = new byte[TransferMessage.MESSAGE_SIZE];
-//            DatagramPacket ackPacket = new DatagramPacket(ackData, ackData.length);
+                sendPacketToServer(p, sendSocket, localAddress, sendPort);
+
+                //listenForAck(receiveSocket);
+                (new Thread(new AckListener(receiveSocket))).start();
+
+                
+                s_n = (s_n + 1) % modulus;
+
+                remainingCharacters -= chunkOfData.length;
+            }
+            else {
+                // send window is full, wait for successful ACKs
+                // System.out.println("Send Window Full");
+
+            }
+
+            // TODO: What happens when we get an ACK
+                // mark all items in window with index less than ACK'd number as 'null'
+                // update firstOutstanding Packet to equal the ACK'd number
             
-//            try {
-//                receiveSocket.receive(ackPacket);
-//            } catch(IOException ioe) {
-//                System.out.println(ioe); // Lazy Error Handling
-//            }
-//            System.out.println("Received ACK '" + new String(ackPacket.getData()) + "'");
-//
-//            currentChunk++;
-//            remainingBytes -= chunkOfData.length;
         }
 
         System.out.println("Sending file to server Complete");
+    }
+
+    private static void sendPacketToServer(packet p, DatagramSocket sendSocket, InetAddress localAddress, int sendPort) {
+        byte[] dataToSend = null;
+
+        try {
+            dataToSend = PacketHelper.serialize(p);
+        } catch(IOException ioe) {
+            System.out.println("Error Serializing packet to byte array");
+            System.out.println(ioe);
+        }
+
+        DatagramPacket dataPacket = new DatagramPacket(dataToSend, dataToSend.length, localAddress, sendPort);
+        
+        System.out.println("Sending Message to Server:");
+        p.printContents();
+        try {
+            sendSocket.send(dataPacket);
+        } catch(IOException ioe) {
+            System.out.println(ioe);
+        }
     }
 }
