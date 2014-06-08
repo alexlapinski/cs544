@@ -131,7 +131,14 @@ public class ServerApplication {
             System.out.println("Wrote payload to file.");
 
             // Build the ACK datagram
-            InetAddress clientAddress = receivePacket.getAddress();
+            InetAddress clientAddress;
+            try {
+                clientAddress = InetAddress.getByName(emulatorHostname);
+            } catch(UnknownHostException uhe) {
+                System.out.println(uhe);
+                return;
+            }
+            
             byte[] ackData = null;
             packet ackPacket = new packet(PacketHelper.PacketType.ACK.getValue(), -1/*TODO: Get from received packet*/, 0, null);
 

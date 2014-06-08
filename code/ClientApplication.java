@@ -175,6 +175,7 @@ public class ClientApplication {
 
         try {
             localAddress = InetAddress.getByName(emulatorHostname);
+            System.out.println("Connecting to '"+localAddress+"'");
         } catch(UnknownHostException uhe) {
             System.out.println(uhe);
             return;
