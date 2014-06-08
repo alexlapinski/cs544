@@ -67,13 +67,13 @@ public final class PacketHelper {
 			return null;
 		}
 
-		ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(source);
-		ObjectInputStream objectInputStream = new ObjectInputStream(byteArrayInputStream);
+		ObjectInputStream objectInputStream = new ObjectInputStream(new ByteArrayInputStream(source));
 
 		packet objectValue = null;
 
 		try {
 			objectValue = (packet) objectInputStream.readObject();
+			objectInputStream.close();
 		} catch(ClassNotFoundException cnfe) {
 			System.out.println(cnfe);
 		}

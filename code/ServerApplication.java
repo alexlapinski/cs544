@@ -12,6 +12,7 @@ public class ServerApplication {
     private static int _sendPort;
     private static int _receivePort;
     private static String _filenameToWrite;
+    private static FileWriter _fout;
 
     private static ServerSocket _transferService;
 
@@ -22,7 +23,15 @@ public class ServerApplication {
             return;
         } else {
             _parseArguments(args);
-            _beginTransfer(_emulatorHostname, _sendPort, _receivePort, _filenameToWrite);
+
+            try {
+                _fout = _setupOutputFile(_filenameToWrite);
+            } catch(IOException ioe) {
+                System.out.println(ioe);
+                return; // Abort
+            }
+
+            _beginTransfer(_emulatorHostname, _sendPort, _receivePort, _fout);
         }
         
         System.out.println("File transfer complete, Shutting down the server");
@@ -62,113 +71,122 @@ public class ServerApplication {
      * @param emulatorHostname The hostname of the network emulator to connect to
      * @param sendPort UDP port to use for sending acks to the emulator
      * @param receivePort UDP port to use for receiving data from the emulator
-     * @param filename The filename to write the received data to
+     * @param fout The FileWriter to write the received data to
      */
-    private static void _beginTransfer(String emulatorHostname, int sendPort, int receivePort, String filename) {
-    
-        // setup the file writer
-        File receivedFile = new File(filename);
-        if( receivedFile.exists() ) {
-            receivedFile.delete();
-        } else {
-            try {
-                receivedFile.createNewFile();
-            } catch(IOException ioe) {
-                System.out.println(ioe);
-            }
-        }
-        FileWriter fout;
-
-        try {
-            fout = new FileWriter(receivedFile);
-        } catch(IOException ioe) {
-            System.out.println(ioe);
-            return;
-        }
+    private static void _beginTransfer(String emulatorHostname, int sendPort, int receivePort, FileWriter fout) {
                     
         // setup the server socket for receiving the file & sending ACKs
         DatagramSocket receiveSocket;
         DatagramSocket sendSocket;
         try {
             receiveSocket = new DatagramSocket(receivePort);
-            sendSocket = new DatagramSocket(sendPort);
+            sendSocket = new DatagramSocket();
         } catch(SocketException se) {
             System.out.println(se);
             return;
         }
+
+        InetAddress sendAddress;
+        try {
+            sendAddress = InetAddress.getByName(emulatorHostname);
+        } catch(UnknownHostException uhe) {
+            System.out.println(uhe);
+            return;
+        }
+
+
         boolean transferingFileInProgress = true;
 
         System.out.println("Waiting for file transfer");
         while(transferingFileInProgress) {
 
-            // Setup the Receive Datagram
-            byte[] receivedData = new byte[PacketHelper.PACKET_MAX_CHARACTERS];
-            DatagramPacket receivePacket = new DatagramPacket(receivedData, receivedData.length);
+            System.out.println("Accepting Packet");
+            packet receivedPacket = _acceptPacket(receiveSocket);
 
-            try {
-                receiveSocket.receive(receivePacket);
-            } catch(IOException ioe) {
-                System.out.println(ioe);
-            }
-
-            // Get the transfer message and unbox it
-            packet receivedMessage = null;
-            try {
-                receivedMessage = PacketHelper.deserialize(receivedData);
-                receivedMessage.printContents();
-            } catch(IOException ioe) {
-                System.out.println(ioe); // Lazy Error Handling
-            }
+            System.out.println("Received Packet");
+            receivedPacket.printContents();
             
-            // Write the chunk out to file
-            String payloadMessage = receivedMessage.getData();
-            try {
-                fout.write(payloadMessage, 0, payloadMessage.length());   
-                fout.flush();
-            } catch(IOException ioe) {
-                System.out.println(ioe);
-            }
-            System.out.println("Wrote payload to file.");
+            // Write the chunk out to file (TODO: only do this when we have data)
+            System.out.println("Writing Packet to File");
+            _writePacketToFile(receivedPacket, fout);
 
-            // Build the ACK datagram
-            InetAddress clientAddress;
-            try {
-                clientAddress = InetAddress.getByName(emulatorHostname);
-            } catch(UnknownHostException uhe) {
-                System.out.println(uhe);
-                return;
-            }
+            // Build the ACK message
+            System.out.println("Creating ACK Packet");
+            packet ackPacket = _createAckPacket(receivedPacket);
+
+            System.out.println("Sending ACK Packet");
+            _sendAck(sendAddress, sendPort, ackPacket);
             
-            byte[] ackData = null;
-            packet ackPacket = new packet(PacketHelper.PacketType.ACK.getValue(), -1/*TODO: Get from received packet*/, 0, null);
+            // TODO: Detect end of transfer
+        }
+    }
 
-            try {
-                ackData = PacketHelper.serialize(ackPacket);
-            } catch(IOException ioe) {
-                System.out.println(ioe);
-            }
+    private static void _writePacketToFile(packet p, FileWriter fout) {
+        String payloadMessage = p.getData();
+        try {
+            fout.write(payloadMessage, 0, payloadMessage.length());   
+            fout.flush();
+        } catch(IOException ioe) {
+            System.out.println(ioe);
+        }
+        System.out.println("Wrote payload to file.");
+    }
 
-            DatagramPacket ackUDPPacket = new DatagramPacket(ackData, ackData.length, clientAddress, sendPort);
-                       
-            // Send the ACK & notifiy user on CLI
-            System.out.println("Sending ACK");
-            try {
-                sendSocket.send(ackUDPPacket);
-            } catch(IOException ioe) {
-                System.out.println(ioe);
-            }
+    private static FileWriter _setupOutputFile(String filename) throws IOException {
+        File receivedFile = new File(filename);
+        
+        if( receivedFile.exists() ) {
+            receivedFile.delete();
+        } else {
+            receivedFile.createNewFile();
+        }
 
-            // Detect end of transfer
-            //if( receivedMessage.getIsLastMessage() ) {
-              //  try {
-                //    fout.flush();
-                  //  fout.close();
-                //} catch(IOException ioe) {
-                  //  System.out.println(ioe);
-                //}
-                //transferingFileInProgress = false;
-                //System.out.println("Received EOF message.");
-            //}
+        return new FileWriter(receivedFile);
+    }
+
+    private static packet _acceptPacket(DatagramSocket receiveSocket) {
+        byte[] receivedData = new byte[1024];
+        DatagramPacket receiveUDPPacket = new DatagramPacket(receivedData, receivedData.length);
+
+        try {
+            receiveSocket.receive(receiveUDPPacket);
+            receivedData = receiveUDPPacket.getData();
+        } catch(IOException ioe) {
+            System.out.println(ioe);
+        }
+
+        System.out.println("Received Data: '"+receivedData+"'");
+
+        packet receivedPacket = null;
+        try {
+            receivedPacket = PacketHelper.deserialize(receivedData);
+        } catch(IOException ioe) {
+            System.out.println(ioe); // Lazy Error Handling
+        }
+
+        return receivedPacket;
+    }
+
+    private static packet _createAckPacket(packet receivedDataPacket) {
+        int nextExpectedPacket = receivedDataPacket.getSeqNum() + 1;
+        return new packet(PacketHelper.PacketType.ACK.getValue(), nextExpectedPacket, 0, null);
+    }
+
+    private static void _sendAck(InetAddress sendAddress, int sendPort, packet ackPacket) {
+        
+        byte[] ackData = null;
+        try {
+            ackData = PacketHelper.serialize(ackPacket);
+        } catch(IOException ioe) {
+            System.out.println(ioe);
+        }
+
+        DatagramPacket ackUDPPacket = new DatagramPacket(ackData, ackData.length, sendAddress, sendPort);
+        try {
+            DatagramSocket sendSocket = new DatagramSocket();
+            sendSocket.send(ackUDPPacket);
+        } catch(IOException ioe) {
+            System.out.println(ioe);
         }
     }
 }

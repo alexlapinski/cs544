@@ -166,7 +166,7 @@ public class ClientApplication {
         packet[] sendWindow = new packet[window_size];
         
         try {
-            sendSocket = new DatagramSocket(sendPort);
+            sendSocket = new DatagramSocket();
             receiveSocket = new DatagramSocket(receivePort);
         } catch(SocketException se) {
             System.out.println(se);
