@@ -28,17 +28,22 @@ default: Server Client
 #
 # Define the target for building the server application
 #
-Server: ServerApplication.class TransferMessage
+Server: ServerApplication.class PacketHelper Packet
 
 #
 # Define the target for building the client application
 #
-Client: ClientApplication.class TransferMessage
+Client: ClientApplication.class PacketHelper Packet
 
 #
-# Define the target for building the transfer message class
+# Define the target for building the PacketHelper Class
 #
-TransferMessage: TransferMessage.class
+PacketHelper: PacketHelper.class
+
+#
+# Define the target for building the Packet Class
+#
+Packet: packet.class
 
 #
 # Clean Target
@@ -46,5 +51,5 @@ TransferMessage: TransferMessage.class
 clean:
 	$(RM) ServerApplication.class
 	$(RM) ClientApplication.class
-	$(RM) TransferMessage.class
+	$(RM) PacketHelper.class
 	$(RM) packet.class

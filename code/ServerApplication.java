@@ -102,7 +102,7 @@ public class ServerApplication {
         while(transferingFileInProgress) {
 
             // Setup the Receive Datagram
-            byte[] receivedData = new byte[TransferMessage.MESSAGE_SIZE];
+            byte[] receivedData = new byte[PacketHelper.PACKET_MAX_SIZE];
             DatagramPacket receivePacket = new DatagramPacket(receivedData, receivedData.length);
 
             try {
@@ -112,50 +112,50 @@ public class ServerApplication {
             }
 
             // Get the transfer message and unbox it
-            TransferMessage receivedMessage = null;
-            try {
-                receivedMessage = TransferMessage.fromBytes(receivePacket.getData());
-                System.out.println("Received message: { isLastMessage: '" + receivedMessage.getIsLastMessage() + "', payload: '" +receivedMessage.getPayloadAsString() +"'}"); 
-            } catch(Exception e) {
-                System.out.println(e); // Lazy Error Handling
-            }
+            //packet receivedMessage = null;
+            //try {
+                //receivedMessage = TransferMessage.fromBytes(receivePacket.getData());
+                //System.out.println("Received message: { isLastMessage: '" + receivedMessage.getIsLastMessage() + "', payload: '" +receivedMessage.getPayloadAsString() +"'}"); 
+            //} catch(Exception e) {
+              //  System.out.println(e); // Lazy Error Handling
+            //}
             
             // Write the chunk out to file
-            String payloadMessage = receivedMessage.getPayloadAsString();
-            try {
-                fout.write(payloadMessage, 0, payloadMessage.length());   
-                fout.flush();
-            } catch(IOException ioe) {
-                System.out.println(ioe);
-            }
-            System.out.println("Wrote payload to file.");
+            //String payloadMessage = receivedMessage.getPayloadAsString();
+            //try {
+            //    fout.write(payloadMessage, 0, payloadMessage.length());   
+            //    fout.flush();
+            //} catch(IOException ioe) {
+            //    System.out.println(ioe);
+           // }
+            //System.out.println("Wrote payload to file.");
 
             // Build the ACK datagram
-            InetAddress clientAddress = receivePacket.getAddress();
-            int clientPort = sendSocket.getPort();
-            String ackMessage = receivedMessage.getPayloadAsString().toUpperCase();
-            byte[] ackData = ackMessage.getBytes();
-            DatagramPacket ackPacket = new DatagramPacket(ackData, ackData.length, clientAddress, clientPort);
+            //InetAddress clientAddress = receivePacket.getAddress();
+            //int clientPort = sendSocket.getPort();
+            //String ackMessage = receivedMessage.getPayloadAsString().toUpperCase();
+            //byte[] ackData = ackMessage.getBytes();
+            //DatagramPacket ackPacket = new DatagramPacket(ackData, ackData.length, clientAddress, clientPort);
                        
             // Send the ACK & notifiy user on CLI
-            System.out.println("Sending ACK");
-            try {
-                sendSocket.send(ackPacket);
-            } catch(IOException ioe) {
-                System.out.println(ioe);
-            }
+            //System.out.println("Sending ACK");
+            //try {
+                //sendSocket.send(ackPacket);
+            //} catch(IOException ioe) {
+                //System.out.println(ioe);
+            //}
 
             // Detect end of transfer
-            if( receivedMessage.getIsLastMessage() ) {
-                try {
-                    fout.flush();
-                    fout.close();
-                } catch(IOException ioe) {
-                    System.out.println(ioe);
-                }
-                transferingFileInProgress = false;
-                System.out.println("Received EOF message.");
-            }
+            //if( receivedMessage.getIsLastMessage() ) {
+              //  try {
+                //    fout.flush();
+                  //  fout.close();
+                //} catch(IOException ioe) {
+                  //  System.out.println(ioe);
+                //}
+                //transferingFileInProgress = false;
+                //System.out.println("Received EOF message.");
+            //}
         }
     }
 }

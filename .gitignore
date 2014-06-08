@@ -1,4 +1,6 @@
 code/ClientApplication.class
 code/ServerApplication.class
-code/PackageTypeEnum.class
+code/packet.class
+code/PacketHelper.class
+code/PacketHelper*.class
 .DS_Store

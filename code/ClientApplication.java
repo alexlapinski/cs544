@@ -147,43 +147,41 @@ public class ClientApplication {
         
         while(remainingBytes > 0) {
 
-            // TODO: Create message "Structure" that has a flag to indicate more data available, or to indicate last message
-
-            int startIndex = (currentChunk * TransferMessage.PAYLOAD_SIZE);
-            int endIndex = ((currentChunk+1) * TransferMessage.PAYLOAD_SIZE);
+            int startIndex = (currentChunk * PacketHelper.PACKET_MAX_SIZE);
+            int endIndex = ((currentChunk+1) * PacketHelper.PACKET_MAX_SIZE);
 
             byte[] chunkOfData = Arrays.copyOfRange(totalDataToSend, startIndex, endIndex);
 
-            TransferMessage message = null;
-            try {
-                message = new TransferMessage(endIndex >= totalDataToSend.length, chunkOfData);
-            } catch(Exception e) {
-                System.out.println(e);
-            }
+//            TransferMessage message = null;
+//            try {
+//                message = new TransferMessage(endIndex >= totalDataToSend.length, chunkOfData);
+//            } catch(Exception e) {
+//                System.out.println(e);
+//            }
 
-            byte[] messageAsBytes = message.getBytes();
+//            byte[] messageAsBytes = message.getBytes();
 
-            DatagramPacket dataPacket = new DatagramPacket(messageAsBytes, messageAsBytes.length, localAddress, sendPort);
+//            DatagramPacket dataPacket = new DatagramPacket(messageAsBytes, messageAsBytes.length, localAddress, sendPort);
     
-            System.out.println("Sending Message to Server: { isLastMessage: '"+message.getIsLastMessage()+"', payload: '"+ message.getPayloadAsString() + "'}");
-            try {
-                sendSocket.send(dataPacket);
-            } catch(IOException ioe) {
-                System.out.println(ioe);
-            }
+//            System.out.println("Sending Message to Server: { isLastMessage: '"+message.getIsLastMessage()+"', payload: '"+ message.getPayloadAsString() + "'}");
+//            try {
+//                sendSocket.send(dataPacket);
+//            } catch(IOException ioe) {
+//                System.out.println(ioe);
+//            }
 
-            byte[] ackData = new byte[TransferMessage.MESSAGE_SIZE];
-            DatagramPacket ackPacket = new DatagramPacket(ackData, ackData.length);
+//            byte[] ackData = new byte[TransferMessage.MESSAGE_SIZE];
+//            DatagramPacket ackPacket = new DatagramPacket(ackData, ackData.length);
             
-            try {
-                receiveSocket.receive(ackPacket);
-            } catch(IOException ioe) {
-                System.out.println(ioe); // Lazy Error Handling
-            }
-            System.out.println("Received ACK '" + new String(ackPacket.getData()) + "'");
-
-            currentChunk++;
-            remainingBytes -= chunkOfData.length;
+//            try {
+//                receiveSocket.receive(ackPacket);
+//            } catch(IOException ioe) {
+//                System.out.println(ioe); // Lazy Error Handling
+//            }
+//            System.out.println("Received ACK '" + new String(ackPacket.getData()) + "'");
+//
+//            currentChunk++;
+//            remainingBytes -= chunkOfData.length;
         }
 
         System.out.println("Sending file to server Complete");
