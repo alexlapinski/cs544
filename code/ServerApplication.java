@@ -8,136 +8,66 @@ import java.util.Arrays;
 
 public class ServerApplication {
 
-    private static final int FIXED_PORT = 6000; 
-    private static final int NEGOTIATION_MESSAGE = 42;
+    private static String _emulatorHostname;
+    private static int _sendPort;
+    private static int _receivePort;
+    private static String _filenameToWrite;
 
     private static ServerSocket _transferService;
 
     public static void main(String [ ] args) {
         
-        // Due to similataneous testing on tux, we need to allow for specifying a port at runtime, 
-        // the default (6000) is used if not specified
-
-        int negotiationPort = FIXED_PORT;
-
-        if( args.length >= 1 ) {
-            negotiationPort = Integer.parseInt(args[0], 10);
+        if( args.length == 0 ) {
+            _printHelp();
+            return;
+        } else {
+            _parseArguments(args);
+            _beginTransfer(_emulatorHostname, _sendPort, _receivePort, _filenameToWrite);
         }
-
-        System.out.println("Listening on port " + negotiationPort + " for the client to request transferPort");
-        
-        int transferPort = _negotateTransferPort(negotiationPort);
-        
-        System.out.println("Negotiated use of port '" + transferPort + "' with client for file transfer.");
-        
-        _beginTransferPhase(transferPort);
         
         System.out.println("File transfer complete, Shutting down the server");
     }
 
     /**
-     * @brief Generate a random port
-     * @details Generate a random integer bounded to valid ports
-     * @return Random Port (as Int)
+     * @brief Print the CLI Usage information
+     * @details Print the simple CLI Usage information to std out
      */
-    private static int _generateRandomPort() {
-        final int MAX_PORT_VALUE = 65535;
-        final int MIN_PORT_VALUE = 1024;
-
-        Random randomInt = new Random();
-
-        int port = randomInt.nextInt(MAX_PORT_VALUE - MIN_PORT_VALUE) + MIN_PORT_VALUE;
-
-        return port;
-    }
-
-
-    /**
-     * @brief Validate the message sent from the client
-     * @details Simple check against expected message value
-     * 
-     * @param message Message to check
-     * @return true if message is valid
-     */
-    private static boolean _isNegotiationMessage(int message) {
-        return message == NEGOTIATION_MESSAGE;
+    private static void _printHelp() {
+        System.out.println("Use the following format to specify commands: <emulator_hostname> <send_port> <receive_port> <filename>");
     }
 
     /**
-     * @brief listen for the client and negotiate random transfer port
-     * @details Setup Socket communication and wait for client message, once negotiation message is received, generate a random port and send it to the client.
-     * Return that random port for internal usage.
+     * @brief Parse the CLI arguments
+     * @details Parse the arguments, just assume position in the args array
      * 
-     * @param negotiationPort Pre-determined port to use for neogotiation of random port with the client
-     * @return Random port to be used with file transfer or -1 if negotiation failed
+     * @param args CLI Arguments
      */
-    private static int _negotateTransferPort(int negotiationPort) {
+    private static void _parseArguments(String[] args) {
+        _emulatorHostname = args[0];
+        _sendPort = Integer.parseInt(args[1], 10);
+        _receivePort = Integer.parseInt(args[2], 10);
+        _filenameToWrite = args[3];
 
-        ServerSocket negotiationService;
-        Socket clientNegotiationSocket;
-        DataInputStream negotationInputStream;
-        DataOutputStream negotationOutputStream;
-        int randomPort = -1;
-
-        try {
-            // create our service
-            negotiationService = new ServerSocket(negotiationPort, 0, null);
-
-            // Endless loop to use for communication with the client
-            boolean negotiationInProgress = true;
-            while( negotiationInProgress ) {
-
-                // setup the client socket and communication streams
-                clientNegotiationSocket = negotiationService.accept();
-                negotationInputStream = new DataInputStream(clientNegotiationSocket.getInputStream());
-                negotationOutputStream = new DataOutputStream(clientNegotiationSocket.getOutputStream());
-            
-                int message;
-
-                // read an int from the input stream
-                try {
-                    message = negotationInputStream.readInt();
-                } catch(EOFException eofe) {
-                    break; // Reached end of file, exit out of endless loop
-                } catch(IOException ioe) {
-                    throw ioe;
-                }
-
-                // first check to see if the int is the expected value
-                if( _isNegotiationMessage(message) )  {
-                    
-                    // generate random port number > 1024
-                    randomPort = _generateRandomPort();
-
-                    // send transfer port to client
-                    negotationOutputStream.writeInt(randomPort);
-                    
-                    // Cleanup Negotiation Phase
-                    negotationOutputStream.close();
-                    negotiationInProgress = false;
-                }
-            }
-            
-            // Cleanup of sockets is handled on the client end
-
-        } catch(IOException ioe) {
-            System.out.println(ioe);
-        }
-
-        return randomPort; // todo, clean this up, it isn't really needed to return the random port since we just run the server once, 
-        // its not a true server, as it is not a long-running process
+        System.out.println("Arguments Supplied");
+        System.out.println("     Emulator Hostname: " + _emulatorHostname);
+        System.out.println("     Send to Emulator Port: " + _sendPort);
+        System.out.println("     Receive from Emulator Port: " + _receivePort);
+        System.out.println("     Filename To Write: " + _filenameToWrite);
     }
 
     /**
      * @brief Listen for the client to connect over the transfer port and handle transfer of file
      * @details Handle the transfer phase of the server
      * 
-     * @param transferPort port to use for UDP socket transfer
+     * @param emulatorHostname The hostname of the network emulator to connect to
+     * @param sendPort UDP port to use for sending acks to the emulator
+     * @param receivePort UDP port to use for receiving data from the emulator
+     * @param filename The filename to write the received data to
      */
-    private static void _beginTransferPhase(int transferPort) {
+    private static void _beginTransfer(String emulatorHostname, int sendPort, int receivePort, String filename) {
     
         // setup the file writer
-        File receivedFile = new File("received.txt");
+        File receivedFile = new File(filename);
         if( receivedFile.exists() ) {
             receivedFile.delete();
         } else {
@@ -156,10 +86,12 @@ public class ServerApplication {
             return;
         }
                     
-        // setup the server socket for receiving the file
-        DatagramSocket serverSocket;
+        // setup the server socket for receiving the file & sending ACKs
+        DatagramSocket receiveSocket;
+        DatagramSocket sendSocket;
         try {
-            serverSocket = new DatagramSocket(transferPort);
+            receiveSocket = new DatagramSocket(receivePort);
+            sendSocket = new DatagramSocket(sendPort);
         } catch(SocketException se) {
             System.out.println(se);
             return;
@@ -174,7 +106,7 @@ public class ServerApplication {
             DatagramPacket receivePacket = new DatagramPacket(receivedData, receivedData.length);
 
             try {
-                serverSocket.receive(receivePacket);
+                receiveSocket.receive(receivePacket);
             } catch(IOException ioe) {
                 System.out.println(ioe);
             }
@@ -200,7 +132,7 @@ public class ServerApplication {
 
             // Build the ACK datagram
             InetAddress clientAddress = receivePacket.getAddress();
-            int clientPort = receivePacket.getPort();
+            int clientPort = sendSocket.getPort();
             String ackMessage = receivedMessage.getPayloadAsString().toUpperCase();
             byte[] ackData = ackMessage.getBytes();
             DatagramPacket ackPacket = new DatagramPacket(ackData, ackData.length, clientAddress, clientPort);
@@ -208,7 +140,7 @@ public class ServerApplication {
             // Send the ACK & notifiy user on CLI
             System.out.println("Sending ACK");
             try {
-                serverSocket.send(ackPacket);
+                sendSocket.send(ackPacket);
             } catch(IOException ioe) {
                 System.out.println(ioe);
             }
