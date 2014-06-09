@@ -33,16 +33,13 @@ Server: ServerApplication.class PacketHelper Packet
 #
 # Define the target for building the client application
 #
-Client: ClientApplication.class PacketHelper Packet
+Client: ClientApplication.class PacketHelper Packet FileChunker GoBackNProtocol PacketReceiver PacketSender
 
-#
-# Define the target for building the PacketHelper Class
-#
+FileChunker: FileChunker.class
+GoBackNProtocol: GoBackNProtocol.class
+PacketReceiver: PacketReceiver.class
+PacketSender: PacketSender.class
 PacketHelper: PacketHelper.class
-
-#
-# Define the target for building the Packet Class
-#
 Packet: packet.class
 
 #
@@ -51,5 +48,9 @@ Packet: packet.class
 clean:
 	$(RM) ServerApplication.class
 	$(RM) ClientApplication.class
+	$(RM) FileChunker.class
+	$(RM) GoBackNProtocol.class
+	$(RM) PacketReceiver.class
+	$(RM) PacketSender.class
 	$(RM) PacketHelper.class
 	$(RM) packet.class
