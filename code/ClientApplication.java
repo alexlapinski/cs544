@@ -19,7 +19,7 @@ public class ClientApplication {
         }
 
         public void run() {
-            byte[] ackData = new byte[30];
+            byte[] ackData = new byte[1024];
             DatagramPacket ackPacket = new DatagramPacket(ackData, ackData.length);
             
             try {
@@ -29,7 +29,9 @@ public class ClientApplication {
                 System.out.println(ioe); // Lazy Error Handling
             }
         
-            System.out.println("Received ACK '" + new String(ackPacket.getData()) + "'");
+            System.out.println("Received ACK ! Next SeqNum Expected: '" + _receivedPacket.getSeqNum() + "'");
+
+            ClientApplication.setSn(_receivedPacket.getSeqNum());
         }
     }
 
@@ -38,6 +40,13 @@ public class ClientApplication {
     private static int _receivePort;
     private static String _filenameToTransfer;
     private static char[] _fileContents;
+
+    private static int _s_n = 0;
+    private static int _s_f = 0;
+    private static synchronized void setSn(int value) {
+        _s_f = value - 1;
+        _s_n = value;
+    }
 
     public static void main(String [ ] args) {
 
@@ -153,20 +162,16 @@ public class ClientApplication {
         System.out.println("Sending file to server");
         
         // GBN variables
-        int s_f = 0; // first outstanding packet
-        int s_n = 0; // next packet to send
         int m = 3; // used to calculate window size
         int window_size = (int)Math.pow(2, m) - 1; // (2^m) - 1
         int modulus = (int)Math.pow(2, m); // used in modulus divison
         
         // Transmission Variables
-        DatagramSocket sendSocket = null;
         DatagramSocket receiveSocket = null;
         InetAddress localAddress = null;
         packet[] sendWindow = new packet[window_size];
         
         try {
-            sendSocket = new DatagramSocket();
             receiveSocket = new DatagramSocket(receivePort);
         } catch(SocketException se) {
             System.out.println(se);
@@ -186,35 +191,28 @@ public class ClientApplication {
         int remainingCharacters = totalDataToSend.length;
         int currentChunk = 0;
 
+        // Infinite Loop until file has been entirely sent (TODO: make sure ALL acks received)
         while(remainingCharacters > 0) {
-            System.out.println("----");
+            
             // Create a packet, and send it
-            if( (s_n != (s_f + window_size) % modulus) || (s_n == 0 && s_f == 0) ) {            
+            if( (_s_n != (_s_f + window_size) % modulus) || (_s_n == 0 && _s_f == 0) ) {            
 
-                int startIndex = (currentChunk * PacketHelper.PACKET_MAX_CHARACTERS);
-                int endIndex = ((currentChunk+1) * PacketHelper.PACKET_MAX_CHARACTERS);
+                System.out.println("Creating Data Packet");
+                packet p = _createDataPacket(currentChunk, totalDataToSend, _s_n);
+                System.out.println("DataPacket: ");
 
-                char[] chunkOfData = Arrays.copyOfRange(totalDataToSend, startIndex, endIndex);
-                String packetPayload = new String(chunkOfData);
+                _sendPacketToServer(p, localAddress, sendPort);
+                sendWindow[_s_n] = p;
 
-                sendWindow[s_n] = new packet(PacketHelper.PacketType.DATA.getValue(), 
-                                             s_n, 
-                                             packetPayload.length(), 
-                                             packetPayload);
-
-                packet p = sendWindow[s_n];
-                
-                System.out.println("Sending Packet (Sn = " + s_n + ")");
-
-                sendPacketToServer(p, sendSocket, localAddress, sendPort);
-
-                //listenForAck(receiveSocket);
+                System.out.println("Listening for ACK");
                 (new Thread(new AckListener(receiveSocket))).start();
-
                 
-                s_n = (s_n + 1) % modulus;
+                // Increment Next to send
+                _s_n = (_s_n + 1) % modulus;
 
-                remainingCharacters -= chunkOfData.length;
+                // Update counters for chunking
+                remainingCharacters -= p.getData().length();
+                currentChunk++;
             }
             else {
                 // send window is full, wait for successful ACKs
@@ -231,7 +229,17 @@ public class ClientApplication {
         System.out.println("Sending file to server Complete");
     }
 
-    private static void sendPacketToServer(packet p, DatagramSocket sendSocket, InetAddress localAddress, int sendPort) {
+    private static packet _createDataPacket(int currentChunk, char[] sourceData, int s_n) {
+        int startIndex = (currentChunk * PacketHelper.PACKET_MAX_CHARACTERS);
+        int endIndex = ((currentChunk+1) * PacketHelper.PACKET_MAX_CHARACTERS);
+
+        char[] chunkOfData = Arrays.copyOfRange(sourceData, startIndex, endIndex);
+        String packetPayload = new String(chunkOfData);
+
+        return new packet(PacketHelper.PacketType.DATA.getValue(), s_n, packetPayload.length(), packetPayload);
+    }
+
+    private static void _sendPacketToServer(packet p, InetAddress localAddress, int sendPort) {
         byte[] dataToSend = null;
 
         try {
@@ -246,6 +254,7 @@ public class ClientApplication {
         System.out.println("Sending Message to Server:");
         p.printContents();
         try {
+            DatagramSocket sendSocket = new DatagramSocket();
             sendSocket.send(dataPacket);
         } catch(IOException ioe) {
             System.out.println(ioe);
