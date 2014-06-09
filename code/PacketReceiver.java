@@ -28,6 +28,10 @@ public class PacketReceiver implements Runnable {
         try {
             _listeningSocket.receive(receivedUDPPacket);
             receivedPacket = PacketHelper.deserialize(receivedData);
+
+            System.out.println("Received Packet");
+            receivedPacket.printContents();
+            
         } catch(IOException ioe) {
             System.out.println(ioe);
         }

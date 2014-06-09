@@ -57,19 +57,22 @@ public class client implements PacketReceiver.INotifyPacketArrived {
     private PacketSender _dataSender;
     private FileChunker _fileChunker;
     private GoBackNProtocol _gbnProtocol;
+    private Thread _ackListeningThread;
 
     public client(String destinationHostname, int sendPort, int receivePort, String filenameToTransfer) {
         _fileChunker = new FileChunker(_filenameToTransfer, 30);
         _dataSender = new PacketSender(_emulatorHostname, _sendPort);
 
         _gbnProtocol = new GoBackNProtocol(3, _fileChunker, _dataSender);
+        _ackListeningThread = new Thread(new PacketReceiver(receivePort, this));
 
         while( _fileChunker.hasMoreChunks() ) {
+            _ackListeningThread.start();
             _gbnProtocol.sendPacket();
         }
     }
 
     public void notifyPacketArrived(packet p) {
-        // TODO: Handle the arrival of an ACK
+        _gbnProtocol.notifyAckArrived(p);
     }
 }

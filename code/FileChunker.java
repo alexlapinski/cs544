@@ -12,6 +12,7 @@ public class FileChunker {
     public FileChunker(String filename, int maxChunkSize) {
         MAX_CHUNK_SIZE = maxChunkSize;
 
+        _currentChunk = 0;
         _fileData = _readFile(filename);
         _remainingCharacters = _fileData.length;
     }
@@ -75,6 +76,8 @@ public class FileChunker {
         char[] chunkOfData = Arrays.copyOfRange(_fileData, startIndex, endIndex);
 
         _remainingCharacters -= chunkOfData.length;
+
+        _currentChunk++;
 
         return new String(chunkOfData);       
     }

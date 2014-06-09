@@ -9,10 +9,11 @@ public class GoBackNProtocol {
 
     private FileChunker _dataChunker;
     private PacketSender _dataSender;
+    private Thread _ackListener;
 
     public GoBackNProtocol(int m, FileChunker dataChunker, PacketSender dataSender) {
         WINDOW_MAX_SIZE = (int) Math.pow(2, m) - 1;
-        MODULUS = (int) Math.pow(2, m);
+        MODULUS = (int) Math.pow(2, m) - 1;
 
         _indexOfFirstOutstandingPacket = 0;
         _indexOfNextPacketToSend = 0;
@@ -57,6 +58,9 @@ public class GoBackNProtocol {
         
         int ackNumber = ackPacket.getSeqNum();
 
+        System.out.println("Received Packet With Ack # = " + ackNumber);
+        ackPacket.printContents();
+
         if( ackNumber >= _indexOfFirstOutstandingPacket && ackNumber < _indexOfNextPacketToSend ) {
             purgeValuesFromWindow(_indexOfFirstOutstandingPacket, ackNumber);
             _indexOfFirstOutstandingPacket = ackNumber;
@@ -82,6 +86,10 @@ public class GoBackNProtocol {
 
         packet p = new packet(PacketHelper.PacketType.DATA.getValue(), sequenceNumber, payload.length(), payload);
         _sendWindow[_indexOfNextPacketToSend] = p; // store a copy
+
+        System.out.println("Sending Packet w/ Sequence # = " + sequenceNumber);
+        p.printContents();
+
         _dataSender.sendPacket(p); // send packet
         _indexOfNextPacketToSend = (_indexOfNextPacketToSend + 1) % MODULUS; // increment next expected packet to send
     }
