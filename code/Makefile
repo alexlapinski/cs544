@@ -28,14 +28,15 @@ default: Server Client
 #
 # Define the target for building the server application
 #
-Server: ServerApplication.class PacketHelper Packet
+Server: server.class PacketHelper Packet PacketReceiver PacketSender SimpleFileWriter
 
 #
 # Define the target for building the client application
 #
-Client: ClientApplication.class PacketHelper Packet FileChunker GoBackNProtocol PacketReceiver PacketSender
+Client: client.class PacketHelper Packet FileChunker GoBackNProtocol PacketReceiver PacketSender
 
 FileChunker: FileChunker.class
+SimpleFileWriter: SimpleFileWriter.class
 GoBackNProtocol: GoBackNProtocol.class
 PacketReceiver: PacketReceiver.class
 PacketSender: PacketSender.class
@@ -46,11 +47,14 @@ Packet: packet.class
 # Clean Target
 #
 clean:
-	$(RM) ServerApplication.class
-	$(RM) ClientApplication.class
+	$(RM) server.class
+	$(RM) client.class
 	$(RM) FileChunker.class
+	$(RM) SimpleFileWriter.class
 	$(RM) GoBackNProtocol.class
 	$(RM) PacketReceiver.class
+	$(RM) PacketReceiver*INotifyPacketArrived.class
 	$(RM) PacketSender.class
 	$(RM) PacketHelper.class
+	$(RM) PacketHelper*PacketType.class
 	$(RM) packet.class

@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import java.net.*;
 import java.io.*;
 
-public class ClientApplication implements PacketReceiver.INotifyPacketArrived {
+public class client implements PacketReceiver.INotifyPacketArrived {
 
     private static String _emulatorHostname;
     private static int _sendPort;
@@ -20,7 +20,7 @@ public class ClientApplication implements PacketReceiver.INotifyPacketArrived {
             _printHelp();
         } else {
             _parseArguments(args);
-            ClientApplication instance = new ClientApplication(_emulatorHostname, _sendPort, _receivePort, _filenameToTransfer);
+            client instance = new client(_emulatorHostname, _sendPort, _receivePort, _filenameToTransfer);
         }
     }
 
@@ -58,7 +58,7 @@ public class ClientApplication implements PacketReceiver.INotifyPacketArrived {
     private FileChunker _fileChunker;
     private GoBackNProtocol _gbnProtocol;
 
-    public ClientApplication(String destinationHostname, int sendPort, int receivePort, String filenameToTransfer) {
+    public client(String destinationHostname, int sendPort, int receivePort, String filenameToTransfer) {
         _fileChunker = new FileChunker(_filenameToTransfer, 30);
         _dataSender = new PacketSender(_emulatorHostname, _sendPort);
 
