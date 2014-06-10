@@ -55,11 +55,11 @@ public class server implements PacketReceiver.INotifyPacketArrived {
 
     private PacketSender _ackSender;
     private DatagramSocket _dataSocket;
-    private PacketReceiver _dataReceiver;
     private packet _receivedPacket;
     private SimpleFileWriter _outputWriter;
     private SimpleFileWriter _arrivalLogger;
     private final int MODULUS;
+    private boolean _hasEOTArrived;
 
     public server(String destinationName, int sendPort, int receivePort, String outputFilename) {
         
@@ -70,7 +70,6 @@ public class server implements PacketReceiver.INotifyPacketArrived {
         }
 
         _ackSender = new PacketSender(destinationName, sendPort);
-        _dataReceiver = new PacketReceiver(_dataSocket, this);
         _outputWriter = new SimpleFileWriter(outputFilename);
         _arrivalLogger = new SimpleFileWriter("arrival.log");
         
@@ -78,7 +77,20 @@ public class server implements PacketReceiver.INotifyPacketArrived {
         MODULUS = (int) Math.pow(2, m);
 
         System.out.println("Listening for Packets");
-        _dataReceiver.run();
+        while(!_hasEOTArrived) {
+            byte[] receivedData = new byte[1024];
+            DatagramPacket receivedUDPPacket = new DatagramPacket(receivedData, receivedData.length);
+            packet receivedPacket = null;
+
+            try {
+                _dataSocket.receive(receivedUDPPacket);
+                receivedPacket = PacketHelper.deserialize(receivedData);
+            } catch(IOException ioe) {
+                System.out.println(ioe);
+            }
+
+            notifyPacketArrived(receivedPacket);
+        }
     }
 
     public void notifyPacketArrived(packet p) {
@@ -93,10 +105,9 @@ public class server implements PacketReceiver.INotifyPacketArrived {
 
             _ackSender.sendPacket(new packet(PacketHelper.PacketType.ACK.getValue(), nextSequenceNumberExpected, 0, null));
 
-            // queue up the listener again
-            _dataReceiver.run();
         }
         else if( p.getType() == PacketHelper.PacketType.ClientToServerEOT.getValue() ) {
+            _hasEOTArrived = true;
             _outputWriter.closeFile();
 
             _ackSender.sendPacket(new packet(PacketHelper.PacketType.ServerToClientEOT.getValue(), 0, 0, null));

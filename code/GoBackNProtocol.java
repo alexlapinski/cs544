@@ -85,6 +85,7 @@ public class GoBackNProtocol implements PacketHelper.ITimerListener{
 
             p.printContents();
             _dataSender.sendPacket(p);
+            _seqNumLogger.appendToFile(p.getSeqNum() + "\n");
         }
 
         // Restart the timer
