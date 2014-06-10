@@ -95,7 +95,7 @@ public class GoBackNProtocol implements PacketHelper.ITimerListener{
     }
 
     private void purgeValuesFromWindow(int fromIndex, int toIndex) {
-        for(int i = fromIndex; i <= toIndex; i++) {
+        for(int i = fromIndex; i < toIndex; i++) {
             _sendBuffer[i] = null;
         }
     }
