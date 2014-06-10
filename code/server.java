@@ -60,6 +60,7 @@ public class server implements PacketReceiver.INotifyPacketArrived {
     private SimpleFileWriter _arrivalLogger;
     private final int MODULUS;
     private boolean _hasEOTArrived;
+    private int _expectedSequenceNumber;
 
     public server(String destinationName, int sendPort, int receivePort, String outputFilename) {
         
@@ -77,6 +78,7 @@ public class server implements PacketReceiver.INotifyPacketArrived {
         MODULUS = (int) Math.pow(2, m);
 
         System.out.println("Listening for Packets");
+        _expectedSequenceNumber = 0;
         while(!_hasEOTArrived) {
             byte[] receivedData = new byte[1024];
             DatagramPacket receivedUDPPacket = new DatagramPacket(receivedData, receivedData.length);
@@ -99,11 +101,16 @@ public class server implements PacketReceiver.INotifyPacketArrived {
         System.out.println("Packet with Sequence Number '"+p.getSeqNum()+"' arrived.");
 
         if( p.getType() == PacketHelper.PacketType.DATA.getValue() ) {
+
+            if( p.getSeqNum() != _expectedSequenceNumber ) {
+                return; // Drop the packet, its not what we expected
+            }
+
             _outputWriter.appendToFile(p.getData());
 
-            int nextSequenceNumberExpected = (p.getSeqNum() + 1) % MODULUS;
+            _expectedSequenceNumber = (_expectedSequenceNumber + 1) % MODULUS;
 
-            _ackSender.sendPacket(new packet(PacketHelper.PacketType.ACK.getValue(), nextSequenceNumberExpected, 0, null));
+            _ackSender.sendPacket(new packet(PacketHelper.PacketType.ACK.getValue(), _expectedSequenceNumber, 0, null));
 
         }
         else if( p.getType() == PacketHelper.PacketType.ClientToServerEOT.getValue() ) {
