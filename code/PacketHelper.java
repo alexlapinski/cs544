@@ -3,6 +3,10 @@ import java.io.*;
 
 public final class PacketHelper {
 	
+    public interface ITimerListener {
+        void notifyTimeoutOccured();
+    }
+
 	/**
 	 * @brief PacketType enum, representing the types of packets
 	 * @details Each packet type corresponds to a non-negative integer.

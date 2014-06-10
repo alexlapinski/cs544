@@ -1,5 +1,22 @@
-public class GoBackNProtocol {
+import java.util.Timer;
+import java.util.TimerTask;
+
+public class GoBackNProtocol implements PacketHelper.ITimerListener{
     
+    private final class TimeoutTask extends TimerTask {
+
+        private PacketHelper.ITimerListener _listener;
+
+        public TimeoutTask(PacketHelper.ITimerListener listener) {
+            _listener = listener;
+        }
+
+        public void run() {
+            _listener.notifyTimeoutOccured();
+        }
+    }
+
+    private final int TIMEOUT_DELAY = 800; // in milliseconds
     private int _indexOfNextPacketToSend;
     private int _indexOfFirstOutstandingPacket;
     private final int WINDOW_MAX_SIZE;
@@ -10,7 +27,8 @@ public class GoBackNProtocol {
     private FileChunker _dataChunker;
     private PacketSender _dataSender;
     private SimpleFileWriter _seqNumLogger;
-    private Thread _ackListener;
+    private Timer _timeoutTimer;
+    private boolean _isTimerRunning;
 
     public GoBackNProtocol(int m, FileChunker dataChunker, PacketSender dataSender, SimpleFileWriter seqNumLogger) {
         WINDOW_MAX_SIZE = (int) Math.pow(2, m) - 1;
@@ -30,24 +48,47 @@ public class GoBackNProtocol {
         return (_indexOfFirstOutstandingPacket + WINDOW_MAX_SIZE) == _indexOfNextPacketToSend;
     }
 
-    private void stopTimer() {
-        // TODO
+    private void _stopTimer() {
+        synchronized(GoBackNProtocol.class) {
+            if( _timeoutTimer == null ) {
+                return;
+            }
+            _timeoutTimer.cancel();
+            _timeoutTimer.purge();
+            _timeoutTimer = null;
+            _isTimerRunning = false;
+        }
     }
 
-    private void restartTimer() {
-        // TODO
+    private void _restartTimer() {
+        _stopTimer();
+        _startTimer();
     }
 
-    private void startTimer() {
-        // TODO
+    private void _startTimer() {
+        synchronized(GoBackNProtocol.class) {
+            _timeoutTimer = new Timer("_indexOfNextPacketToSend " + _indexOfNextPacketToSend);
+            _timeoutTimer.schedule(new TimeoutTask(this), TIMEOUT_DELAY);
+            _isTimerRunning = true;
+        }
     }
 
-    private void handleTimerExpired() {
-        // TODO
-
+    public void notifyTimeoutOccured() {
+        _isTimerRunning = false;
         // Resend All outstanding packets
+        for(int i = _indexOfFirstOutstandingPacket; i < _indexOfNextPacketToSend; i++) {
+            packet p = _sendBuffer[i];
+
+            if( p == null ) {
+                continue;
+            }
+
+            p.printContents();
+            _dataSender.sendPacket(p);
+        }
 
         // Restart the timer
+        _restartTimer();
     }
 
     private void purgeValuesFromWindow(int fromIndex, int toIndex) {
@@ -65,7 +106,9 @@ public class GoBackNProtocol {
             _indexOfFirstOutstandingPacket = ackNumber;
 
             if( ackNumber == _indexOfNextPacketToSend ) {
-                stopTimer();
+                _stopTimer();
+            } else {
+                _restartTimer();
             }
 
         } else {
@@ -87,11 +130,21 @@ public class GoBackNProtocol {
         _seqNumLogger.appendToFile(sequenceNumber + "\n");
         _sendBuffer[sequenceNumber] = p; // store a copy
         _dataSender.sendPacket(p); // send packet
+
+        if( !_isTimerRunning ) {
+            _startTimer();       
+        }
+        
         _indexOfNextPacketToSend = (_indexOfNextPacketToSend + 1) % MODULUS; // increment next expected packet to send
     }
 
     public void sendEOTPacket() {
         _seqNumLogger.appendToFile(_indexOfNextPacketToSend + "\n");
         _dataSender.sendPacket(new packet(PacketHelper.PacketType.ClientToServerEOT.getValue(), _indexOfNextPacketToSend, 0, null));
+        _stopTimer();
+    }
+
+    public void finish() {
+        _stopTimer();
     }
 }
