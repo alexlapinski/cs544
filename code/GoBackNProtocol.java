@@ -85,7 +85,7 @@ public class GoBackNProtocol implements PacketHelper.ITimerListener{
                 continue;
             }
 
-            p.printContents();
+            System.out.println("Re-Sending Packet at index: " + i + " with sequenceNumber: " + p.getSeqNum());
             _dataSender.sendPacket(p);
             _seqNumLogger.appendToFile(p.getSeqNum() + "\n");
         }
@@ -141,8 +141,13 @@ public class GoBackNProtocol implements PacketHelper.ITimerListener{
         if( !_isTimerRunning ) {
             _startTimer();       
         }
-        
-        _indexOfNextPacketToSend = (_indexOfNextPacketToSend + 1) % MODULUS; // increment next expected packet to send
+     
+        int newIndex = (_indexOfNextPacketToSend + 1) % MODULUS; // increment next expected packet to send
+        if( (_indexOfFirstOutstandingPacket + WINDOW_MAX_SIZE) == newIndex ) {
+            // this puts us in a blocking state, don't update the index yet
+        } else {
+            _indexOfNextPacketToSend = newIndex; // we're not in a blocking state, update away
+        }
     }
 
     public void sendEOTPacket() {
