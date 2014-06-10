@@ -78,7 +78,7 @@ public class GoBackNProtocol implements PacketHelper.ITimerListener{
 
         System.out.println("Timeout Occured, resending packets from " + _indexOfFirstOutstandingPacket + " to " + _indexOfNextPacketToSend);
         // Resend All outstanding packets
-        for(int i = _indexOfFirstOutstandingPacket; i < _indexOfNextPacketToSend; i++) {
+        for(int i = _indexOfFirstOutstandingPacket; i <= _indexOfNextPacketToSend; i++) {
             packet p = _sendBuffer[i];
 
             if( p == null ) {
