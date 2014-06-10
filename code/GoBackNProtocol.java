@@ -29,6 +29,7 @@ public class GoBackNProtocol implements PacketHelper.ITimerListener{
     private SimpleFileWriter _seqNumLogger;
     private Timer _timeoutTimer;
     private boolean _isTimerRunning;
+    private boolean _isBlocked;
 
     public GoBackNProtocol(int m, FileChunker dataChunker, PacketSender dataSender, SimpleFileWriter seqNumLogger) {
         WINDOW_MAX_SIZE = (int) Math.pow(2, m) - 1;
@@ -45,7 +46,7 @@ public class GoBackNProtocol implements PacketHelper.ITimerListener{
     }
 
     private boolean isBlocking() {
-        return (_indexOfFirstOutstandingPacket + WINDOW_MAX_SIZE) == _indexOfNextPacketToSend;
+        return _isBlocked;
     }
 
     private void _stopTimer() {
@@ -105,6 +106,7 @@ public class GoBackNProtocol implements PacketHelper.ITimerListener{
         int ackNumber = ackPacket.getSeqNum();
 
         if( ackNumber >= _indexOfFirstOutstandingPacket && ackNumber < _indexOfNextPacketToSend ) {
+            _isBlocked = false;
             System.out.println("Purging values from " + _indexOfFirstOutstandingPacket + " to " + ackNumber);
             purgeValuesFromWindow(_indexOfFirstOutstandingPacket, ackNumber);
             _indexOfFirstOutstandingPacket = ackNumber;
@@ -146,7 +148,7 @@ public class GoBackNProtocol implements PacketHelper.ITimerListener{
      
         int newIndex = (_indexOfNextPacketToSend + 1) % MODULUS; // increment next expected packet to send
         if( (_indexOfFirstOutstandingPacket + WINDOW_MAX_SIZE) == newIndex ) {
-            // this puts us in a blocking state, don't update the index yet
+            _isBlocked = true;
         } else {
             _indexOfNextPacketToSend = newIndex; // we're not in a blocking state, update away
         }
