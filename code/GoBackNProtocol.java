@@ -165,8 +165,6 @@ public class GoBackNProtocol implements PacketHelper.ITimerListener{
             }
         }
 
-        System.out.println("Are all sent packets acked? " + areAllSentPacketsAcked);
-
         return areAllSentPacketsAcked;
     }
 }
