@@ -119,9 +119,14 @@ public class GoBackNProtocol implements PacketHelper.ITimerListener{
     }
 
     public void sendPacket() {
-        if( isBlocking() ) {
+        if( isBlocking()) {
             System.out.println("We're Blocked....");
             return; // Do nothing, we're in a blocking state
+        }
+
+        if( !_dataChunker.hasMoreChunks() ) {
+            System.out.println("Ignoring request to send packet, no data to send.");
+            return;
         }
 
         // Determine Sequence Number
