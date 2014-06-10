@@ -31,14 +31,17 @@ public class SimpleFileWriter {
             _fout.write(str, 0, str.length());   
             _fout.flush();
         } catch(IOException ioe) {
+            System.out.print("appendtoFileError");
             System.out.println(ioe);
         }
     }
 
     public void closeFile() {
+        System.out.println("Closeing File");
         try {
             _fout.close();
         } catch(IOException ioe) {
+            System.out.print("closeFileError");
             System.out.println(ioe);
         }
     }

@@ -7,20 +7,17 @@ public class PacketReceiver implements Runnable {
         void notifyPacketArrived(packet p);
     }
 
-    private DatagramSocket _listeningSocket;
     private INotifyPacketArrived _arrivalListener;
+    private DatagramSocket _listeningSocket;
 
-    public PacketReceiver(int listeningPort, INotifyPacketArrived arrivalListener) {
+    public PacketReceiver(DatagramSocket listeningSocket, INotifyPacketArrived arrivalListener) {
         _arrivalListener = arrivalListener;
 
-        try {
-            _listeningSocket = new DatagramSocket(listeningPort);
-        } catch(IOException ioe) {
-            System.out.println(ioe);
-        }
+        _listeningSocket = listeningSocket;
     }
 
     public void run() {
+
         byte[] receivedData = new byte[1024];
         DatagramPacket receivedUDPPacket = new DatagramPacket(receivedData, receivedData.length);
         packet receivedPacket = null;
@@ -28,10 +25,6 @@ public class PacketReceiver implements Runnable {
         try {
             _listeningSocket.receive(receivedUDPPacket);
             receivedPacket = PacketHelper.deserialize(receivedData);
-
-            System.out.println("Received Packet");
-            receivedPacket.printContents();
-            
         } catch(IOException ioe) {
             System.out.println(ioe);
         }

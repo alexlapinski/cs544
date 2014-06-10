@@ -54,15 +54,25 @@ public class server implements PacketReceiver.INotifyPacketArrived {
 
 
     private PacketSender _ackSender;
+    private DatagramSocket _dataSocket;
     private PacketReceiver _dataReceiver;
     private packet _receivedPacket;
     private SimpleFileWriter _outputWriter;
+    private SimpleFileWriter _arrivalLogger;
     private final int MODULUS;
 
     public server(String destinationName, int sendPort, int receivePort, String outputFilename) {
+        
+        try {
+            _dataSocket = new DatagramSocket(receivePort);
+        } catch(IOException ioe) {
+            System.out.println(ioe);
+        }
+
         _ackSender = new PacketSender(destinationName, sendPort);
-        _dataReceiver = new PacketReceiver(receivePort, this);
+        _dataReceiver = new PacketReceiver(_dataSocket, this);
         _outputWriter = new SimpleFileWriter(outputFilename);
+        _arrivalLogger = new SimpleFileWriter("arrival.log");
         
         int m = 3;
         MODULUS = (int) Math.pow(2, m);
@@ -71,6 +81,8 @@ public class server implements PacketReceiver.INotifyPacketArrived {
     }
 
     public void notifyPacketArrived(packet p) {
+
+        _arrivalLogger.appendToFile(p.getSeqNum() + "\n");
 
         if( p.getType() == PacketHelper.PacketType.DATA.getValue() ) {
             _outputWriter.appendToFile(p.getData());

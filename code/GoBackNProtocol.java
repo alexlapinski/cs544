@@ -5,23 +5,25 @@ public class GoBackNProtocol {
     private final int WINDOW_MAX_SIZE;
     private final int MODULUS;
 
-    private packet[] _sendWindow;
+    private packet[] _sendBuffer;
 
     private FileChunker _dataChunker;
     private PacketSender _dataSender;
+    private SimpleFileWriter _seqNumLogger;
     private Thread _ackListener;
 
-    public GoBackNProtocol(int m, FileChunker dataChunker, PacketSender dataSender) {
+    public GoBackNProtocol(int m, FileChunker dataChunker, PacketSender dataSender, SimpleFileWriter seqNumLogger) {
         WINDOW_MAX_SIZE = (int) Math.pow(2, m) - 1;
-        MODULUS = (int) Math.pow(2, m) - 1;
+        MODULUS = (int) Math.pow(2, m);
 
         _indexOfFirstOutstandingPacket = 0;
         _indexOfNextPacketToSend = 0;
 
-        _sendWindow = new packet[WINDOW_MAX_SIZE];
+        _sendBuffer = new packet[WINDOW_MAX_SIZE + 1];
 
         _dataChunker = dataChunker;
         _dataSender = dataSender;
+        _seqNumLogger = seqNumLogger;
     }
 
     private boolean isBlocking() {
@@ -50,16 +52,13 @@ public class GoBackNProtocol {
 
     private void purgeValuesFromWindow(int fromIndex, int toIndex) {
         for(int i = fromIndex; i <= toIndex; i++) {
-            _sendWindow[i] = null;
+            _sendBuffer[i] = null;
         }
     }
 
     public void notifyAckArrived(packet ackPacket) {
         
         int ackNumber = ackPacket.getSeqNum();
-
-        System.out.println("Received Packet With Ack # = " + ackNumber);
-        ackPacket.printContents();
 
         if( ackNumber >= _indexOfFirstOutstandingPacket && ackNumber < _indexOfNextPacketToSend ) {
             purgeValuesFromWindow(_indexOfFirstOutstandingPacket, ackNumber);
@@ -85,12 +84,14 @@ public class GoBackNProtocol {
         String payload = _dataChunker.getNextChunk();
 
         packet p = new packet(PacketHelper.PacketType.DATA.getValue(), sequenceNumber, payload.length(), payload);
-        _sendWindow[_indexOfNextPacketToSend] = p; // store a copy
-
-        System.out.println("Sending Packet w/ Sequence # = " + sequenceNumber);
-        p.printContents();
-
+        _seqNumLogger.appendToFile(sequenceNumber + "\n");
+        _sendBuffer[sequenceNumber] = p; // store a copy
         _dataSender.sendPacket(p); // send packet
         _indexOfNextPacketToSend = (_indexOfNextPacketToSend + 1) % MODULUS; // increment next expected packet to send
+    }
+
+    public void sendEOTPacket() {
+        _seqNumLogger.appendToFile(_indexOfNextPacketToSend + "\n");
+        _dataSender.sendPacket(new packet(PacketHelper.PacketType.ClientToServerEOT.getValue(), _indexOfNextPacketToSend, 0, null));
     }
 }

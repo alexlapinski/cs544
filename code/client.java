@@ -57,22 +57,53 @@ public class client implements PacketReceiver.INotifyPacketArrived {
     private PacketSender _dataSender;
     private FileChunker _fileChunker;
     private GoBackNProtocol _gbnProtocol;
-    private Thread _ackListeningThread;
+    private DatagramSocket _receiveSocket;
+
+    private SimpleFileWriter _seqNumLogger;
+    private SimpleFileWriter _ackLogger;
 
     public client(String destinationHostname, int sendPort, int receivePort, String filenameToTransfer) {
-        _fileChunker = new FileChunker(_filenameToTransfer, 30);
+        final int M_VALUE = 3;
+        final int MAX_CHARS_PER_PACKET = 30;
+
+        _seqNumLogger = new SimpleFileWriter("seqnum.log");
+        _ackLogger = new SimpleFileWriter("ack.log");
+
+        _fileChunker = new FileChunker(_filenameToTransfer, MAX_CHARS_PER_PACKET);
         _dataSender = new PacketSender(_emulatorHostname, _sendPort);
 
-        _gbnProtocol = new GoBackNProtocol(3, _fileChunker, _dataSender);
-        _ackListeningThread = new Thread(new PacketReceiver(receivePort, this));
+        _gbnProtocol = new GoBackNProtocol(M_VALUE, _fileChunker, _dataSender, _seqNumLogger);
+
+        try {
+            _receiveSocket = new DatagramSocket(receivePort);
+        } catch(IOException ioe) {
+            System.out.println(ioe);
+        }
+
+        (new Thread(new PacketReceiver(_receiveSocket, this))).start();
 
         while( _fileChunker.hasMoreChunks() ) {
-            _ackListeningThread.start();
             _gbnProtocol.sendPacket();
         }
+
+        _gbnProtocol.sendEOTPacket();
+    }
+
+    public void dispose() {
+        _ackLogger.closeFile();
+        _seqNumLogger.closeFile();
     }
 
     public void notifyPacketArrived(packet p) {
-        _gbnProtocol.notifyAckArrived(p);
+
+        if( p.getType() == PacketHelper.PacketType.ACK.getValue() ) {
+            _ackLogger.appendToFile(p.getSeqNum() + "\n");
+            _gbnProtocol.notifyAckArrived(p);
+            (new Thread(new PacketReceiver(_receiveSocket, this))).start();
+        } else if( p.getType() == PacketHelper.PacketType.ServerToClientEOT.getValue() ) {
+            System.out.println("Recevived EOT from server; exiting");
+        } else {
+            System.out.println("Unexpected Response Packet of Type: " + p.getType());
+        }
     }
 }
