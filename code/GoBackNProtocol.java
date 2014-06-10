@@ -120,6 +120,7 @@ public class GoBackNProtocol implements PacketHelper.ITimerListener{
 
     public void sendPacket() {
         if( isBlocking() ) {
+            System.out.println("We're Blocked....");
             return; // Do nothing, we're in a blocking state
         }
 
@@ -147,5 +148,15 @@ public class GoBackNProtocol implements PacketHelper.ITimerListener{
 
     public void finish() {
         _stopTimer();
+    }
+
+    public boolean areAllSentPacketsAcked() {
+        for(int i = 0; i < _sendBuffer.length; i++ ) {
+            if( _sendBuffer[i] != null ) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

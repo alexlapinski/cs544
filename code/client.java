@@ -83,7 +83,7 @@ public class client implements PacketReceiver.INotifyPacketArrived {
         (new Thread(new PacketReceiver(_receiveSocket, this))).start();
 
         System.out.println("Sending Packets to Server");
-        while( _fileChunker.hasMoreChunks() ) {
+        while( _fileChunker.hasMoreChunks() && !_gbnProtocol.areAllSentPacketsAcked()) {
             _gbnProtocol.sendPacket();
         }
 

@@ -53,8 +53,10 @@ clean:
 	$(RM) SimpleFileWriter.class
 	$(RM) GoBackNProtocol.class
 	$(RM) PacketReceiver.class
-	$(RM) PacketReceiver*INotifyPacketArrived.class
 	$(RM) PacketSender.class
 	$(RM) PacketHelper.class
-	$(RM) PacketHelper*PacketType.class
 	$(RM) packet.class
+	$(RM) GoBackNProtocol\$$TimeoutTask.class
+	$(RM) PacketHelper\$$PacketType.class
+	$(RM) PacketHelper\$$ITimerListener.class
+	$(RM) PacketReceiver\$$INotifyPacketArrived.class
