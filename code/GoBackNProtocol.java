@@ -75,6 +75,8 @@ public class GoBackNProtocol implements PacketHelper.ITimerListener{
 
     public void notifyTimeoutOccured() {
         _isTimerRunning = false;
+
+        System.out.println("Timeout Occured, resending packets from " + _indexOfFirstOutstandingPacket + " to " + _indexOfNextPacketToSend);
         // Resend All outstanding packets
         for(int i = _indexOfFirstOutstandingPacket; i < _indexOfNextPacketToSend; i++) {
             packet p = _sendBuffer[i];
@@ -120,12 +122,10 @@ public class GoBackNProtocol implements PacketHelper.ITimerListener{
 
     public void sendPacket() {
         if( isBlocking()) {
-            System.out.println("We're Blocked....");
             return; // Do nothing, we're in a blocking state
         }
 
         if( !_dataChunker.hasMoreChunks() ) {
-            System.out.println("Ignoring request to send packet, no data to send.");
             return;
         }
 
