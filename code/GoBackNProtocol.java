@@ -146,12 +146,10 @@ public class GoBackNProtocol implements PacketHelper.ITimerListener{
             _startTimer();       
         }
      
-        int newIndex = (_indexOfNextPacketToSend + 1) % MODULUS; // increment next expected packet to send
-        if( (_indexOfFirstOutstandingPacket + WINDOW_MAX_SIZE) == newIndex ) {
+        _indexOfNextPacketToSend = (_indexOfNextPacketToSend + 1) % MODULUS; // increment next expected packet to send
+        if( (_indexOfFirstOutstandingPacket + WINDOW_MAX_SIZE) == _indexOfNextPacketToSend ) {
             _isBlocked = true;
-        } else {
-            _indexOfNextPacketToSend = newIndex; // we're not in a blocking state, update away
-        }
+        } 
     }
 
     public void sendEOTPacket() {
