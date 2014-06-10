@@ -98,11 +98,10 @@ public class server implements PacketReceiver.INotifyPacketArrived {
     public void notifyPacketArrived(packet p) {
 
         _arrivalLogger.appendToFile(p.getSeqNum() + "\n");
-        System.out.println("Packet with Sequence Number '"+p.getSeqNum()+"' arrived.");
 
         if( p.getType() == PacketHelper.PacketType.DATA.getValue() ) {
 
-            System.out.println("Expecting SequenceNumber: " + _expectedSequenceNumber);
+            System.out.println("Expecting SequenceNumber: " + _expectedSequenceNumber + " got sequenceNumber " + p.getSeqNum());
             if( p.getSeqNum() != _expectedSequenceNumber ) {
                 // Drop the packet, send an ack for what we want
                 _ackSender.sendPacket(new packet(PacketHelper.PacketType.ACK.getValue(), _expectedSequenceNumber, 0, null));                
