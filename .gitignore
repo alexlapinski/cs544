@@ -1,6 +1,9 @@
-code/ClientApplication.class
-code/ServerApplication.class
-code/packet.class
+code/client.class
+code/FileChunker.class
+code/GoBackNProtocol.class
 code/PacketHelper.class
-code/PacketHelper*.class
+code/PacketReceiver.class
+code/PacketSender.class
+code/server.class
+code/packet.class
 .DS_Store
