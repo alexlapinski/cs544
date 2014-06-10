@@ -103,7 +103,9 @@ public class server implements PacketReceiver.INotifyPacketArrived {
         if( p.getType() == PacketHelper.PacketType.DATA.getValue() ) {
 
             if( p.getSeqNum() != _expectedSequenceNumber ) {
-                return; // Drop the packet, its not what we expected
+                // Drop the packet, send an ack for what we want
+                _ackSender.sendPacket(new packet(PacketHelper.PacketType.ACK.getValue(), _expectedSequenceNumber, 0, null));                
+                return;
             }
 
             _outputWriter.appendToFile(p.getData());
