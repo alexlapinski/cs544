@@ -100,14 +100,15 @@ public class GoBackNProtocol implements PacketHelper.ITimerListener{
     public void notifyAckArrived(packet ackPacket) {
         
         int ackNumber = ackPacket.getSeqNum();
-
+        System.out.println("Ack for SeqNum '" + ackNum + "' arrived; _indexOfNextPacketToSend = " + _indexOfNextPacketToSend + "; _indexOfFirstOutstandingPacket = " + _indexOfFirstOutstandingPacket);
         if( ackNumber >= _indexOfFirstOutstandingPacket && ackNumber < _indexOfNextPacketToSend ) {
-            _isBlocked = false;
+            
             System.out.println("Purging values from " + _indexOfFirstOutstandingPacket + " to " + ackNumber);
             purgeValuesFromWindow(_indexOfFirstOutstandingPacket, ackNumber);
             _indexOfFirstOutstandingPacket = ackNumber;
 
             if( ackNumber == _indexOfNextPacketToSend ) {
+                _isBlocked = false;
                 _stopTimer();
             } else {
                 _restartTimer();

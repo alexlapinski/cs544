@@ -99,7 +99,7 @@ public class client implements PacketReceiver.INotifyPacketArrived {
     public void notifyPacketArrived(packet p) {
 
         if( p.getType() == PacketHelper.PacketType.ACK.getValue() ) {
-            System.out.println("ACK for Sequence Number '"+p.getSeqNum()+"' arrived.");
+            //System.out.println("ACK for Sequence Number '"+p.getSeqNum()+"' arrived.");
             _ackLogger.appendToFile(p.getSeqNum() + "\n");
             _gbnProtocol.notifyAckArrived(p);
             (new Thread(new PacketReceiver(_receiveSocket, this))).start();
