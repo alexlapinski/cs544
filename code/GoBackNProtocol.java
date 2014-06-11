@@ -79,7 +79,7 @@ public class GoBackNProtocol implements PacketHelper.ITimerListener{
 
         System.out.println("Timeout Occured, resending packets from [" + _indexOfFirstOutstandingPacket + " to " + _indexOfNextPacketToSend + ")");
         // Resend All outstanding packets
-        for(int i = _indexOfFirstOutstandingPacket; i < _indexOfNextPacketToSend; i = (i + 1) % MODULUS ) {
+        for(int i = _indexOfFirstOutstandingPacket; i != _indexOfNextPacketToSend; i = (i + 1) % MODULUS ) {
             packet p = _sendBuffer[i];
 
             System.out.println("Re-Sending Packet at index: " + i + " with sequenceNumber: " + p.getSeqNum());
@@ -93,7 +93,7 @@ public class GoBackNProtocol implements PacketHelper.ITimerListener{
 
     private void purgeValuesFromWindow(int fromIndex, int toIndex) {
         System.out.println("Purging values from [" + fromIndex + " to " + toIndex + ")");
-        for(int i = fromIndex; i < toIndex; i = (i + 1) % MODULUS) {
+        for(int i = fromIndex; i != toIndex; i = (i + 1) % MODULUS) {
             System.out.println("Purging item at index: " + i);
             _sendBuffer[i] = null;
         }
