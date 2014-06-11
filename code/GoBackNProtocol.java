@@ -136,7 +136,6 @@ public class GoBackNProtocol implements PacketHelper.ITimerListener{
 
         packet p = new packet(PacketHelper.PacketType.DATA.getValue(), sequenceNumber, payload.length(), payload);
         _seqNumLogger.appendToFile(sequenceNumber + "\n");
-        System.out.println("Saving Packet with SequenceNumber " + p.getSeqNum() + " in slot " + sequenceNumber);
         _sendBuffer[sequenceNumber] = p; // store a copy
         _dataSender.sendPacket(p); // send packet
 
