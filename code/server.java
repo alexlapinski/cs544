@@ -29,7 +29,7 @@ public class server implements PacketReceiver.INotifyPacketArrived {
      * @details Print the simple CLI Usage information to std out
      */
     private static void _printHelp() {
-        System.out.println("Use the following format to specify commands: <emulator_hostname> <send_port> <receive_port> <filename>");
+        System.out.println("Use the following format to specify commands: <emulator_hostname> <receive_port> <send_port> <filename>");
     }
 
     /**
@@ -40,8 +40,8 @@ public class server implements PacketReceiver.INotifyPacketArrived {
      */
     private static void _parseArguments(String[] args) {
         _emulatorHostname = args[0];
-        _sendPort = Integer.parseInt(args[1], 10);
-        _receivePort = Integer.parseInt(args[2], 10);
+        _sendPort = Integer.parseInt(args[2], 10);
+        _receivePort = Integer.parseInt(args[1], 10);
         _filenameToWrite = args[3];
 
         System.out.println("Arguments Supplied");
