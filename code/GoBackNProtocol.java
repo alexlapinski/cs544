@@ -77,12 +77,10 @@ public class GoBackNProtocol implements PacketHelper.ITimerListener{
     public void notifyTimeoutOccured() {
         _isTimerRunning = false;
 
-        System.out.println("Timeout Occured, resending packets from [" + _indexOfFirstOutstandingPacket + " to " + _indexOfNextPacketToSend + ")");
         // Resend All outstanding packets
         for(int i = _indexOfFirstOutstandingPacket; i != _indexOfNextPacketToSend; i = (i + 1) % MODULUS ) {
             packet p = _sendBuffer[i];
 
-            System.out.println("Re-Sending Packet at index: " + i + " with sequenceNumber: " + p.getSeqNum());
             _dataSender.sendPacket(p);
             _seqNumLogger.appendToFile(p.getSeqNum() + "\n");
         }
@@ -92,9 +90,7 @@ public class GoBackNProtocol implements PacketHelper.ITimerListener{
     }
 
     private void purgeValuesFromWindow(int fromIndex, int toIndex) {
-        System.out.println("Purging values from [" + fromIndex + " to " + toIndex + ")");
         for(int i = fromIndex; i != toIndex; i = (i + 1) % MODULUS) {
-            System.out.println("Purging item at index: " + i);
             _sendBuffer[i] = null;
         }
     }
@@ -104,12 +100,8 @@ public class GoBackNProtocol implements PacketHelper.ITimerListener{
         int ackNumber = ackPacket.getSeqNum();
         int ackNumberAfterLoop = (ackNumber + WINDOW_MAX_SIZE) % MODULUS;
 
-        System.out.println("Ack for SeqNum '" + ackNumber + "' arrived; _indexOfNextPacketToSend = " + _indexOfNextPacketToSend + "; _indexOfFirstOutstandingPacket = " + _indexOfFirstOutstandingPacket);
-
         boolean withinRange = (ackNumber >= _indexOfFirstOutstandingPacket);
         boolean withinRangeAfterLoop = (ackNumberAfterLoop >= _indexOfFirstOutstandingPacket); 
-        
-        System.out.println("ackNumber >= _indexOfFirstOutstandingPacket ? " + withinRange + " ... after looping? " + withinRangeAfterLoop);
         
         if( (withinRange || withinRangeAfterLoop) && ackNumber <= _indexOfNextPacketToSend ) {
             
