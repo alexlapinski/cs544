@@ -102,8 +102,16 @@ public class GoBackNProtocol implements PacketHelper.ITimerListener{
     public void notifyAckArrived(packet ackPacket) {
         
         int ackNumber = ackPacket.getSeqNum();
+        int ackNumberAfterLoop = (ackNumber + WINDOW_MAX_SIZE) % MODULUS;
+
         System.out.println("Ack for SeqNum '" + ackNumber + "' arrived; _indexOfNextPacketToSend = " + _indexOfNextPacketToSend + "; _indexOfFirstOutstandingPacket = " + _indexOfFirstOutstandingPacket);
-        if( ((ackNumber >= _indexOfFirstOutstandingPacket) || (ackNumber >= ((_indexOfFirstOutstandingPacket + WINDOW_MAX_SIZE)%MODULUS))) && ackNumber <= _indexOfNextPacketToSend ) {
+
+        boolean withinRange = (ackNumber >= _indexOfFirstOutstandingPacket);
+        boolean withinRangeAfterLoop = (ackNumberAfterLoop >= _indexOfFirstOutstandingPacket); 
+        
+        System.out.println("ackNumber >= _indexOfFirstOutstandingPacket ? " + withinRange + " ... after looping? " + withinRangeAfterLoop);
+        
+        if( (withinRange || withinRangeAfterLoop) && ackNumber <= _indexOfNextPacketToSend ) {
             
             purgeValuesFromWindow(_indexOfFirstOutstandingPacket, ackNumber);
             _indexOfFirstOutstandingPacket = ackNumber;
