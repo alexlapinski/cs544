@@ -92,7 +92,9 @@ public class GoBackNProtocol implements PacketHelper.ITimerListener{
     }
 
     private void purgeValuesFromWindow(int fromIndex, int toIndex) {
+        System.out.println("Purging values from [" + fromIndex + " to " + toIndex + ")");
         for(int i = fromIndex; i < toIndex; i = (i + 1) % MODULUS) {
+            System.out.println("Purging item at index: " + i);
             _sendBuffer[i] = null;
         }
     }
@@ -103,7 +105,6 @@ public class GoBackNProtocol implements PacketHelper.ITimerListener{
         System.out.println("Ack for SeqNum '" + ackNumber + "' arrived; _indexOfNextPacketToSend = " + _indexOfNextPacketToSend + "; _indexOfFirstOutstandingPacket = " + _indexOfFirstOutstandingPacket);
         if( ackNumber >= _indexOfFirstOutstandingPacket && ackNumber <= _indexOfNextPacketToSend ) {
             
-            System.out.println("Purging values from " + _indexOfFirstOutstandingPacket + " to " + ackNumber);
             purgeValuesFromWindow(_indexOfFirstOutstandingPacket, ackNumber);
             _indexOfFirstOutstandingPacket = ackNumber;
 
