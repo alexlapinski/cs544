@@ -101,7 +101,7 @@ public class server implements PacketReceiver.INotifyPacketArrived {
 
         if( p.getType() == PacketHelper.PacketType.DATA.getValue() ) {
 
-            //System.out.println("Expecting SequenceNumber: " + _expectedSequenceNumber + " got sequenceNumber " + p.getSeqNum());
+            System.out.println("Expecting SequenceNumber: " + _expectedSequenceNumber + " got sequenceNumber " + p.getSeqNum());
             if( p.getSeqNum() != _expectedSequenceNumber ) {
                 // Drop the packet, send an ack for what we want
                 _ackSender.sendPacket(new packet(PacketHelper.PacketType.ACK.getValue(), _expectedSequenceNumber, 0, null));                

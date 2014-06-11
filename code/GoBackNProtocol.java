@@ -82,6 +82,7 @@ public class GoBackNProtocol implements PacketHelper.ITimerListener{
             packet p = _sendBuffer[i];
 
             _dataSender.sendPacket(p);
+            System.out.println("Sending Sequence Number '"+p.getSeqNum()+"'");
             _seqNumLogger.appendToFile(p.getSeqNum() + "\n");
         }
 
@@ -138,6 +139,7 @@ public class GoBackNProtocol implements PacketHelper.ITimerListener{
         _seqNumLogger.appendToFile(sequenceNumber + "\n");
         _sendBuffer[sequenceNumber] = p; // store a copy
         _dataSender.sendPacket(p); // send packet
+        System.out.println("Sending Sequence Number '"+sequenceNumber+"'");
 
         if( !_isTimerRunning ) {
             _startTimer();       
@@ -155,6 +157,7 @@ public class GoBackNProtocol implements PacketHelper.ITimerListener{
     public void sendEOTPacket() {
         _seqNumLogger.appendToFile(_indexOfNextPacketToSend + "\n");
         _dataSender.sendPacket(new packet(PacketHelper.PacketType.ClientToServerEOT.getValue(), _indexOfNextPacketToSend, 0, null));
+        System.out.println("Sending Sequence Number '"+_indexOfNextPacketToSend+"'");
         _stopTimer();
     }
 
